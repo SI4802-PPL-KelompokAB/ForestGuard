@@ -13,13 +13,14 @@
         $user = auth()->user();
         $navItems = [];
         if ($user?->isCitizen()) {
-            $navItems[] = ['label' => 'Laporan Saya', 'route' => 'citizen.home'];
+            $navItems[] = ['label' => 'Laporan Saya', 'href' => route('citizen.home'), 'active' => 'citizen.home'];
         }
         if ($user?->isRanger()) {
-            $navItems[] = ['label' => 'Beranda Ranger', 'route' => 'ranger.home'];
+            $navItems[] = ['label' => 'Beranda Ranger', 'href' => route('ranger.home'), 'active' => 'ranger.home'];
         }
         if ($user?->isAdmin()) {
-            $navItems[] = ['label' => 'Dasbor', 'route' => 'admin.dashboard'];
+            $navItems[] = ['label' => 'Dasbor', 'href' => route('admin.dashboard'), 'active' => 'admin.dashboard'];
+            $navItems[] = ['label' => 'Pengguna', 'href' => route('admin.users.index'), 'active' => 'admin.users.*'];
         }
     @endphp
 
@@ -31,8 +32,8 @@
             </div>
             <nav class="flex flex-1 flex-col gap-1 px-3">
                 @foreach ($navItems as $item)
-                    <a href="{{ route($item['route']) }}"
-                       class="rounded-lg px-3 py-2 text-sm {{ request()->routeIs($item['route']) ? 'bg-forest-700' : 'hover:bg-forest-800' }}">
+                    <a href="{{ $item['href'] }}"
+                       class="rounded-lg px-3 py-2 text-sm {{ request()->routeIs($item['active']) ? 'bg-forest-700' : 'hover:bg-forest-800' }}">
                         {{ $item['label'] }}
                     </a>
                 @endforeach
@@ -59,6 +60,9 @@
                 @if (session('status'))
                     <x-alert type="success" class="mb-4">{{ session('status') }}</x-alert>
                 @endif
+                @if (session('warning'))
+                    <x-alert type="warning" class="mb-4">{{ session('warning') }}</x-alert>
+                @endif
                 @if ($errors->any())
                     <x-alert type="error" class="mb-4">{{ $errors->first() }}</x-alert>
                 @endif
@@ -70,8 +74,8 @@
     <nav class="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white md:hidden">
         <div class="mx-auto flex max-w-lg">
             @foreach ($navItems as $item)
-                <a href="{{ route($item['route']) }}"
-                   class="flex-1 py-3 text-center text-sm {{ request()->routeIs($item['route']) ? 'font-semibold text-forest-700' : 'text-slate-500' }}">
+                <a href="{{ $item['href'] }}"
+                   class="flex-1 py-3 text-center text-sm {{ request()->routeIs($item['active']) ? 'font-semibold text-forest-700' : 'text-slate-500' }}">
                     {{ $item['label'] }}
                 </a>
             @endforeach
