@@ -47,6 +47,28 @@ class Patrol extends Model
         return $this->belongsTo(User::class, 'ranger_id')->withTrashed();
     }
 
+    public function durationSeconds(): ?int
+    {
+        if ($this->started_at === null) {
+            return null;
+        }
+
+        return max(0, ($this->ended_at?->getTimestamp() ?? now('UTC')->getTimestamp()) - $this->started_at->getTimestamp());
+    }
+
+    /** @return array{id: int, code: string, status: string, started_at: ?string, ended_at: ?string, duration_seconds: ?int} */
+    public function executionState(): array
+    {
+        return [
+            'id' => $this->id,
+            'code' => $this->code,
+            'status' => $this->status->value,
+            'started_at' => $this->started_at?->toISOString(),
+            'ended_at' => $this->ended_at?->toISOString(),
+            'duration_seconds' => $this->durationSeconds(),
+        ];
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by')->withTrashed();

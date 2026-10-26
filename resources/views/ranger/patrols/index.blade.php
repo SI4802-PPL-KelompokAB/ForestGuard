@@ -4,6 +4,9 @@
 
 @section('content')
     <h1 class="mb-5 text-xl font-semibold text-forest-900">Tugas patroli</h1>
+    @if ($activePatrol)
+        <x-alert class="mb-4">Patroli sedang berlangsung. <a class="underline" href="{{ route('ranger.patrols.show', $activePatrol) }}">Lanjutkan {{ $activePatrol->code }}</a>.</x-alert>
+    @endif
     <div class="grid gap-4 lg:grid-cols-2">
         @forelse ($patrols as $patrol)
             <x-card>

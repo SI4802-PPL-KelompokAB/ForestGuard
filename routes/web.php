@@ -39,6 +39,8 @@ Route::middleware(['auth', 'active', 'role:ranger'])->prefix('ranger')->name('ra
     Route::get('/', RangerHomeController::class)->name('home');
     Route::get('/patroli', [RangerPatrolController::class, 'index'])->name('patrols.index');
     Route::get('/patroli/{patrol}', [RangerPatrolController::class, 'show'])->name('patrols.show');
+    Route::post('/patroli/{patrol}/mulai', [RangerPatrolController::class, 'start'])->name('patrols.start');
+    Route::post('/patroli/{patrol}/akhiri', [RangerPatrolController::class, 'finish'])->name('patrols.finish');
 });
 
 Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {

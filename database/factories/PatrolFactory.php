@@ -17,4 +17,14 @@ class PatrolFactory extends Factory
     {
         return ['code' => 'P-'.Str::ulid(), 'client_uuid' => (string) Str::uuid(), 'ranger_id' => User::factory()->ranger(), 'created_by' => User::factory()->admin(), 'forest_area_id' => ForestArea::factory(), 'scheduled_at' => now('UTC'), 'created_at' => now('UTC'), 'status' => PatrolStatus::Assigned];
     }
+
+    public function inProgress(): static
+    {
+        return $this->state(fn (): array => ['status' => PatrolStatus::InProgress, 'started_at' => now('UTC')->subHour()]);
+    }
+
+    public function completed(): static
+    {
+        return $this->state(fn (): array => ['status' => PatrolStatus::Completed, 'started_at' => now('UTC')->subHours(2), 'ended_at' => now('UTC')->subHour()]);
+    }
 }
