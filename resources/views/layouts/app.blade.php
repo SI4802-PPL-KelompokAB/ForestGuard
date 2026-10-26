@@ -23,6 +23,7 @@
             $navItems[] = ['label' => 'Dasbor', 'href' => route('admin.dashboard'), 'active' => 'admin.dashboard'];
             $navItems[] = ['label' => 'Pengguna', 'href' => route('admin.users.index'), 'active' => 'admin.users.*'];
             $navItems[] = ['label' => 'Patroli', 'href' => route('admin.patrols.index'), 'active' => 'admin.patrols.*'];
+            $navItems[] = ['label' => 'Data Master', 'href' => route('admin.master.forest-areas.index'), 'active' => 'admin.master.*'];
         }
     @endphp
 

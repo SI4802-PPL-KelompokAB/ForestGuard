@@ -1,6 +1,11 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\Master\CaseStatusController;
+use App\Http\Controllers\Admin\Master\CheckpointController;
+use App\Http\Controllers\Admin\Master\ForestAreaController;
+use App\Http\Controllers\Admin\Master\IncidentTypeController;
+use App\Http\Controllers\Admin\Master\RiskLevelController;
 use App\Http\Controllers\Admin\PatrolController as AdminPatrolController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
@@ -60,4 +65,56 @@ Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admi
     Route::post('/pengguna/{user}/pulihkan', [UserController::class, 'restore'])
         ->withTrashed()
         ->name('users.restore');
+
+    Route::prefix('master')->name('master.')->group(function () {
+        Route::get('/', fn () => redirect()->route('admin.master.forest-areas.index'));
+
+        // Kawasan Hutan
+        Route::get('/kawasan', [ForestAreaController::class, 'index'])->name('forest-areas.index');
+        Route::get('/kawasan/buat', [ForestAreaController::class, 'create'])->name('forest-areas.create');
+        Route::post('/kawasan', [ForestAreaController::class, 'store'])->name('forest-areas.store');
+        Route::get('/kawasan/{forest_area}', [ForestAreaController::class, 'edit']);
+        Route::get('/kawasan/{forest_area}/ubah', [ForestAreaController::class, 'edit'])->name('forest-areas.edit');
+        Route::put('/kawasan/{forest_area}', [ForestAreaController::class, 'update'])->name('forest-areas.update');
+        Route::delete('/kawasan/{forest_area}', [ForestAreaController::class, 'destroy'])->name('forest-areas.destroy');
+        Route::post('/kawasan/{forest_area}/pulihkan', [ForestAreaController::class, 'restore'])
+            ->withTrashed()
+            ->name('forest-areas.restore');
+
+        // Checkpoint
+        Route::get('/checkpoint', [CheckpointController::class, 'index'])->name('checkpoints.index');
+        Route::get('/checkpoint/buat', [CheckpointController::class, 'create'])->name('checkpoints.create');
+        Route::post('/checkpoint', [CheckpointController::class, 'store'])->name('checkpoints.store');
+        Route::get('/checkpoint/{checkpoint}', [CheckpointController::class, 'edit']);
+        Route::get('/checkpoint/{checkpoint}/ubah', [CheckpointController::class, 'edit'])->name('checkpoints.edit');
+        Route::put('/checkpoint/{checkpoint}', [CheckpointController::class, 'update'])->name('checkpoints.update');
+        Route::delete('/checkpoint/{checkpoint}', [CheckpointController::class, 'destroy'])->name('checkpoints.destroy');
+        Route::post('/checkpoint/{checkpoint}/pulihkan', [CheckpointController::class, 'restore'])
+            ->withTrashed()
+            ->name('checkpoints.restore');
+
+        // Tipe Insiden
+        Route::get('/tipe-insiden', [IncidentTypeController::class, 'index'])->name('incident-types.index');
+        Route::get('/tipe-insiden/buat', [IncidentTypeController::class, 'create'])->name('incident-types.create');
+        Route::post('/tipe-insiden', [IncidentTypeController::class, 'store'])->name('incident-types.store');
+        Route::get('/tipe-insiden/{incident_type}', [IncidentTypeController::class, 'edit']);
+        Route::get('/tipe-insiden/{incident_type}/ubah', [IncidentTypeController::class, 'edit'])->name('incident-types.edit');
+        Route::put('/tipe-insiden/{incident_type}', [IncidentTypeController::class, 'update'])->name('incident-types.update');
+        Route::delete('/tipe-insiden/{incident_type}', [IncidentTypeController::class, 'destroy'])->name('incident-types.destroy');
+        Route::post('/tipe-insiden/{incident_type}/pulihkan', [IncidentTypeController::class, 'restore'])
+            ->withTrashed()
+            ->name('incident-types.restore');
+
+        // Tingkat Risiko
+        Route::get('/risiko', [RiskLevelController::class, 'index'])->name('risk-levels.index');
+        Route::get('/risiko/buat', [RiskLevelController::class, 'create'])->name('risk-levels.create');
+        Route::post('/risiko', [RiskLevelController::class, 'store'])->name('risk-levels.store');
+        Route::get('/risiko/{risk_level}', [RiskLevelController::class, 'edit']);
+        Route::get('/risiko/{risk_level}/ubah', [RiskLevelController::class, 'edit'])->name('risk-levels.edit');
+        Route::put('/risiko/{risk_level}', [RiskLevelController::class, 'update'])->name('risk-levels.update');
+        Route::post('/risiko/{risk_level}/toggle', [RiskLevelController::class, 'toggle'])->name('risk-levels.toggle');
+
+        // Status Kasus (Read-Only)
+        Route::get('/status', [CaseStatusController::class, 'index'])->name('case-statuses.index');
+    });
 });
