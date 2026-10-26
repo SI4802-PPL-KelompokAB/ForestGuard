@@ -17,10 +17,12 @@
         }
         if ($user?->isRanger()) {
             $navItems[] = ['label' => 'Beranda Ranger', 'href' => route('ranger.home'), 'active' => 'ranger.home'];
+            $navItems[] = ['label' => 'Patroli', 'href' => route('ranger.patrols.index'), 'active' => 'ranger.patrols.*'];
         }
         if ($user?->isAdmin()) {
             $navItems[] = ['label' => 'Dasbor', 'href' => route('admin.dashboard'), 'active' => 'admin.dashboard'];
             $navItems[] = ['label' => 'Pengguna', 'href' => route('admin.users.index'), 'active' => 'admin.users.*'];
+            $navItems[] = ['label' => 'Patroli', 'href' => route('admin.patrols.index'), 'active' => 'admin.patrols.*'];
         }
     @endphp
 
@@ -44,7 +46,7 @@
             </form>
         </aside>
 
-        <div class="flex min-h-dvh flex-1 flex-col pb-20 md:pb-0">
+        <div class="flex min-h-dvh min-w-0 flex-1 flex-col pb-20 md:pb-0">
             <header class="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
                 <div>
                     <p class="text-sm font-semibold text-forest-800">ForestGuard</p>
