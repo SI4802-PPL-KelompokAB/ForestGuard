@@ -68,3 +68,13 @@ Dokumen ini mencatat keputusan teknis, arsitektur, dan konsensus konvensi yang d
   1. Atribut `role_id` sengaja TIDAK dimasukkan ke dalam `$fillable` model `User`.
   2. Action `RegisterCitizen` mengambil ID peran `citizen` langsung dari server/database dan menetapkannya secara eksplisit sebelum penyimpanan data.
   3. Setiap user baru dari form registrasi memiliki `is_active = true`.
+
+---
+
+## ADR-07: Email Kata Sandi Sementara untuk Akun yang Dibuat Admin
+- **Konteks**: Proposal UC-11 mensyaratkan sistem mengirim kata sandi sementara lewat email saat Admin mendaftarkan akun staf baru. Di sisi lain, ADR-01 menetapkan penolakan fitur reset password mandiri dan verifikasi email.
+- **Keputusan**: Email hanya dipergunakan untuk satu tujuan spesifik, yaitu mengirimkan kata sandi sementara yang dibuat secara acak oleh server saat Admin membuat akun (`TemporaryPasswordMail`). Fitur reset password mandiri ("lupa kata sandi"), verifikasi email, dan paksa ganti password saat login pertama tetap berada di luar cakupan sprint/MVP.
+- **Konsekuensi**: 
+  1. Dibutuhkan konfigurasi mail per lingkungan (`MAIL_MAILER` di `.env`). Untuk dev lokal menggunakan `log` atau array/mailpit.
+  2. Kegagalan pengiriman email tidak membatalkan transaksi pembuatan akun di database; kegagalan dicatat di log sistem dan Admin diberikan notifikasi peringatan agar dapat menetapkan password manual lewat form Ubah.
+
