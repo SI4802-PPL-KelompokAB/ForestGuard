@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\PatrolController as AdminPatrolController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Citizen\HomeController as CitizenHomeController;
 use App\Http\Controllers\Ranger\HomeController as RangerHomeController;
+use App\Http\Controllers\Ranger\PatrolController as RangerPatrolController;
 use App\Support\RoleHome;
 use Illuminate\Support\Facades\Route;
 
@@ -35,10 +37,16 @@ Route::middleware(['auth', 'active', 'role:citizen'])->prefix('citizen')->name('
 
 Route::middleware(['auth', 'active', 'role:ranger'])->prefix('ranger')->name('ranger.')->group(function () {
     Route::get('/', RangerHomeController::class)->name('home');
+    Route::get('/patroli', [RangerPatrolController::class, 'index'])->name('patrols.index');
+    Route::get('/patroli/{patrol}', [RangerPatrolController::class, 'show'])->name('patrols.show');
 });
 
 Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/patroli', [AdminPatrolController::class, 'index'])->name('patrols.index');
+    Route::post('/patroli', [AdminPatrolController::class, 'store'])->name('patrols.store');
+    Route::get('/patroli/{patrol}', [AdminPatrolController::class, 'show'])->name('patrols.show');
+    Route::get('/area-hutan/{area}/checkpoints', [AdminPatrolController::class, 'checkpoints'])->name('patrols.checkpoints');
 
     Route::get('/pengguna', [UserController::class, 'index'])->name('users.index');
     Route::get('/pengguna/buat', [UserController::class, 'create'])->name('users.create');

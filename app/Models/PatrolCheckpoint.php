@@ -36,6 +36,6 @@ class PatrolCheckpoint extends Model
 
     public function checkpoint(): BelongsTo
     {
-        return $this->belongsTo(Checkpoint::class);
+        return $this->belongsTo(Checkpoint::class)->withTrashed();
     }
 }
