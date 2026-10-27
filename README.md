@@ -13,7 +13,7 @@ Aplikasi ini melayani tiga peran utama:
 
 - **Backend**: PHP 8.2+ (PHP 8.4 didukung), Laravel 11/12/13 (MVC murni tanpa React/Vue/Livewire/Inertia/Filament).
 - **Frontend**: Blade Components, Tailwind CSS (via Vite), Vanilla JavaScript.
-- **Basis Data**: MySQL 8.0+ / MariaDB 10.4+.
+- **Basis Data**: PostgreSQL 15+ melalui [Supabase](https://supabase.com/) (lokal CLI atau proyek hosted).
 - **Pengujian**: PHPUnit (Feature & Unit tests) dan Laravel Dusk (Headless Chrome browser automation).
 - **Gaya Kode**: PSR-12, diformat rapi dengan Laravel Pint.
 - **Lokalisasi & Waktu**: Locale `id` (Bahasa Indonesia), Timezone `Asia/Jakarta`.
@@ -24,10 +24,10 @@ Aplikasi ini melayani tiga peran utama:
 
 ### 1. Prasyarat Sistem
 Pastikan perangkat Anda telah terpasang:
-- PHP >= 8.2 (dengan ekstensi `pdo_mysql`, `mbstring`, `xml`, `curl`, `bcmath`, `fileinfo`)
+- PHP >= 8.2 (dengan ekstensi `pdo_pgsql`, `mbstring`, `xml`, `curl`, `bcmath`, `fileinfo`)
 - Composer >= 2.x
 - Node.js >= 18.x dan npm
-- MySQL / MariaDB Server (berjalan pada port 3306)
+- Docker Desktop (untuk `npx supabase start`)
 - Google Chrome browser (untuk Laravel Dusk)
 
 ### 2. Kloning dan Instalasi Dependensi
@@ -49,22 +49,18 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-Pastikan basis data di MySQL telah dibuat:
-```sql
-CREATE DATABASE IF NOT EXISTS forestguard;
-CREATE DATABASE IF NOT EXISTS forestguard_test;
-CREATE DATABASE IF NOT EXISTS forestguard_dusk;
+Jalankan instance Supabase lokal (PostgreSQL pada port `54322`):
+```bash
+npx supabase start
 ```
 
-Sesuaikan kredensial MySQL pada `.env` bila perlu:
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=forestguard
-DB_USERNAME=root
-DB_PASSWORD=
+Buat basis data terpisah untuk pengujian:
+```bash
+docker exec supabase_db_ForestGuard psql -U postgres -c "CREATE DATABASE forestguard_test;"
+docker exec supabase_db_ForestGuard psql -U postgres -c "CREATE DATABASE forestguard_dusk;"
 ```
+
+Kredensial default lokal sudah tercantum di `.env.example`. Untuk proyek hosted, isi host `db.<project-ref>.supabase.co`, password database dari dashboard, dan `DB_SSLMODE=require`.
 
 ### 4. Migrasi dan Seeding Basis Data
 Jalankan migrasi skema lengkap dan seeder idempotent:
@@ -92,18 +88,18 @@ Semua akun dev di bawah ini menggunakan kata sandi: `Password123!`
 
 | Peran | Nama | Email | Halaman Awal |
 |---|---|---|---|
-| **Admin** | Admin Hutan | `admin@forestguard.test` | Dasbor (`/admin/dashboard`) |
-| **Ranger** | Ranger Satu | `ranger1@forestguard.test` | Beranda Ranger (`/ranger`) |
-| **Ranger** | Ranger Dua | `ranger2@forestguard.test` | Beranda Ranger (`/ranger`) |
-| **Citizen** | Warga Satu | `citizen1@forestguard.test` | Laporan Saya (`/citizen/laporan`) |
-| **Citizen** | Warga Dua | `citizen2@forestguard.test` | Laporan Saya (`/citizen/laporan`) |
+| **Admin** | Admin Hutan | `admin@gmail.com` | Dasbor (`/admin/dashboard`) |
+| **Ranger** | Ranger Utama / Satu | `ranger@gmail.com` / `ranger1@gmail.com` | Beranda Ranger (`/ranger`) |
+| **Ranger** | Ranger Dua | `ranger2@gmail.com` | Beranda Ranger (`/ranger`) |
+| **Citizen (Warga)** | Warga Utama / Satu | `user@gmail.com` / `citizen@gmail.com` | Laporan Saya (`/citizen/laporan`) |
+| **Citizen (Warga)** | Warga Dua | `citizen2@gmail.com` | Laporan Saya (`/citizen/laporan`) |
 
 ---
 
 ## 🧪 Menjalankan Pengujian Otomatis
 
 ### 1. PHPUnit (Feature & Unit Tests)
-Feature tests menggunakan basis data terpisah `forestguard_test` (dikonfigurasi pada `phpunit.xml`):
+Feature tests menggunakan basis data PostgreSQL terpisah `forestguard_test` (dikonfigurasi pada `phpunit.xml`):
 ```bash
 php artisan test
 ```
