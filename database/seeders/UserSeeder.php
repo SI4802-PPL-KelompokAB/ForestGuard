@@ -16,6 +16,46 @@ class UserSeeder extends Seeder
 
         $users = [
             [
+                'email' => 'admin@gmail.com',
+                'name' => 'Admin Hutan',
+                'role' => Role::ADMIN,
+            ],
+            [
+                'email' => 'ranger@gmail.com',
+                'name' => 'Ranger Utama',
+                'role' => Role::RANGER,
+            ],
+            [
+                'email' => 'ranger1@gmail.com',
+                'name' => 'Ranger Satu',
+                'role' => Role::RANGER,
+            ],
+            [
+                'email' => 'ranger2@gmail.com',
+                'name' => 'Ranger Dua',
+                'role' => Role::RANGER,
+            ],
+            [
+                'email' => 'user@gmail.com',
+                'name' => 'Warga Pengguna',
+                'role' => Role::CITIZEN,
+            ],
+            [
+                'email' => 'citizen@gmail.com',
+                'name' => 'Warga Utama',
+                'role' => Role::CITIZEN,
+            ],
+            [
+                'email' => 'citizen1@gmail.com',
+                'name' => 'Warga Satu',
+                'role' => Role::CITIZEN,
+            ],
+            [
+                'email' => 'citizen2@gmail.com',
+                'name' => 'Warga Dua',
+                'role' => Role::CITIZEN,
+            ],
+            [
                 'email' => 'admin@forestguard.test',
                 'name' => 'Admin Hutan',
                 'role' => Role::ADMIN,

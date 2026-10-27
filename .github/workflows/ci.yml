@@ -11,14 +11,19 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      mysql:
-        image: mysql:8.0
+      postgres:
+        image: postgres:16
         env:
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: forestguard_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: forestguard_test
         ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout Code
@@ -28,12 +33,16 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: mbstring, xml, ctype, iconv, mysql, pdo_mysql, bcmath, fileinfo, curl
+          extensions: mbstring, xml, ctype, iconv, pgsql, pdo_pgsql, bcmath, fileinfo, curl
           coverage: none
 
       - name: Create Dusk Database
+        env:
+          PGPASSWORD: password
         run: |
-          mysql -h 127.0.0.1 -u root -ppassword -e "CREATE DATABASE IF NOT EXISTS forestguard_dusk;"
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE forestguard_dusk;"
 
       - name: Install Composer Dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
@@ -53,12 +62,13 @@ jobs:
           APP_FALLBACK_LOCALE=id
           APP_FAKER_LOCALE=id_ID
           BCRYPT_ROUNDS=4
-          DB_CONNECTION=mysql
+          DB_CONNECTION=pgsql
           DB_HOST=127.0.0.1
-          DB_PORT=3306
+          DB_PORT=5432
           DB_DATABASE=forestguard_dusk
-          DB_USERNAME=root
+          DB_USERNAME=postgres
           DB_PASSWORD=password
+          DB_SSLMODE=disable
           SESSION_DRIVER=database
           CACHE_STORE=database
           QUEUE_CONNECTION=sync
@@ -71,22 +81,24 @@ jobs:
 
       - name: Run Migrations and Seeders (Test DB)
         env:
-          DB_CONNECTION: mysql
+          DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
-          DB_PORT: 3306
+          DB_PORT: 5432
           DB_DATABASE: forestguard_test
-          DB_USERNAME: root
+          DB_USERNAME: postgres
           DB_PASSWORD: password
+          DB_SSLMODE: disable
         run: php artisan migrate:fresh --seed --force
 
       - name: Run PHPUnit Tests
         env:
-          DB_CONNECTION: mysql
+          DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
-          DB_PORT: 3306
+          DB_PORT: 5432
           DB_DATABASE: forestguard_test
-          DB_USERNAME: root
+          DB_USERNAME: postgres
           DB_PASSWORD: password
+          DB_SSLMODE: disable
         run: php artisan test --compact
 
       - name: Setup ChromeDriver for Dusk

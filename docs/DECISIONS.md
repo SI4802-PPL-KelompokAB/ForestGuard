@@ -49,14 +49,14 @@ Dokumen ini mencatat keputusan teknis, arsitektur, dan konsensus konvensi yang d
      )
      ```
   2. **Tingkat Model Eloquent**: Model `App\Models\Evidence` memanfaatkan lifecycle hook `saving` untuk memvalidasi bahwa jumlah parent yang terisi tepat 1, dan melempar `InvalidArgumentException` jika melanggar.
-- **Pengecualian Driver**: Pada SQLite diuji keamanan model, sedangkan pada MySQL/MariaDB constraint database aktif sepenuhnya.
+- **Pengecualian Driver**: Pada SQLite diuji keamanan model, sedangkan pada PostgreSQL (Supabase) constraint database aktif sepenuhnya.
 
 ---
 
 ## ADR-05: Isolasi Database Pengujian (Dusk & PHPUnit)
 - **Konteks**: Pengujian otomatis (Unit, Feature, dan End-to-End browser Dusk) tidak boleh merusak atau bergantung pada basis data pengembangan (`forestguard`).
 - **Keputusan**:
-  - **Pengembangan (Dev)**: Menggunakan database `forestguard`.
+  - **Pengembangan (Dev)**: Menggunakan database PostgreSQL `postgres` pada instance Supabase lokal (port `54322`).
   - **Feature Tests (PHPUnit)**: Menggunakan database `forestguard_test` (dikonfigurasi pada `phpunit.xml` dengan trait `RefreshDatabase`).
   - **Browser Tests (Laravel Dusk)**: Menggunakan database `forestguard_dusk` (dikonfigurasi pada `.env.dusk.local`).
 
