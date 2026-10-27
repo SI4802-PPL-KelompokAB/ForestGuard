@@ -36,7 +36,7 @@ class Patrol extends Model
             'scheduled_at' => PatrolTimestamp::class,
             'started_at' => PatrolTimestamp::class,
             'ended_at' => PatrolTimestamp::class,
-            'total_distance_km' => 'decimal:3',
+            'total_distance_km' => 'decimal:3' ,
             'status' => PatrolStatus::class,
             'created_at' => PatrolTimestamp::class,
         ];
