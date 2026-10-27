@@ -46,6 +46,8 @@ Route::middleware(['auth', 'active', 'role:ranger'])->prefix('ranger')->name('ra
     Route::get('/patroli/{patrol}', [RangerPatrolController::class, 'show'])->name('patrols.show');
     Route::post('/patroli/{patrol}/mulai', [RangerPatrolController::class, 'start'])->name('patrols.start');
     Route::post('/patroli/{patrol}/akhiri', [RangerPatrolController::class, 'finish'])->name('patrols.finish');
+    Route::get('/patroli/{patrol}/tracks', [RangerPatrolController::class, 'tracks'])->name('patrols.tracks.index');
+    Route::post('/patroli/{patrol}/tracks', [RangerPatrolController::class, 'recordTrack'])->name('patrols.tracks.store');
 });
 
 Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -53,6 +55,7 @@ Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admi
     Route::get('/patroli', [AdminPatrolController::class, 'index'])->name('patrols.index');
     Route::post('/patroli', [AdminPatrolController::class, 'store'])->name('patrols.store');
     Route::get('/patroli/{patrol}', [AdminPatrolController::class, 'show'])->name('patrols.show');
+    Route::get('/patroli/{patrol}/tracks', [AdminPatrolController::class, 'tracks'])->name('patrols.tracks.index');
     Route::get('/area-hutan/{area}/checkpoints', [AdminPatrolController::class, 'checkpoints'])->name('patrols.checkpoints');
 
     Route::get('/pengguna', [UserController::class, 'index'])->name('users.index');

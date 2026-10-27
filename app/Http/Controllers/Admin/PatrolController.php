@@ -57,4 +57,13 @@ class PatrolController extends Controller
     {
         return view('patrols.show', ['patrol' => $patrol->load(['forestArea', 'ranger', 'creator', 'patrolCheckpoints.checkpoint'])]);
     }
+
+    public function tracks(Patrol $patrol): JsonResponse
+    {
+        return response()->json([
+            'patrol_id' => $patrol->id,
+            'total_distance_km' => $patrol->total_distance_km,
+            'tracks' => $patrol->tracks()->orderBy('recorded_at')->orderBy('id')->get(),
+        ])->header('Cache-Control', 'no-store');
+    }
 }
