@@ -12,6 +12,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Citizen\HomeController as CitizenHomeController;
+use App\Http\Controllers\EvidenceController;
+use App\Http\Controllers\EvidenceTestController;
 use App\Http\Controllers\Ranger\HomeController as RangerHomeController;
 use App\Http\Controllers\Ranger\PatrolController as RangerPatrolController;
 use App\Support\RoleHome;
@@ -35,6 +37,15 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', LogoutController::class)
     ->middleware('auth')
     ->name('logout');
+
+Route::middleware(['auth', 'active'])->group(function () {
+    Route::get('/bukti/{evidence}', EvidenceController::class)->name('evidence.show');
+
+    // Halaman Uji Komponen Upload Bukti (PBI 9).
+    // Catatan: Route dan halaman ini akan dinonaktifkan setelah PBI 10 (Submit Laporan Insiden Terintegrasi) selesai diimplementasikan.
+    Route::get('/uji-bukti', [EvidenceTestController::class, 'index'])->name('evidence.test');
+    Route::post('/uji-bukti', [EvidenceTestController::class, 'store'])->name('evidence.test.store');
+});
 
 Route::middleware(['auth', 'active', 'role:citizen'])->prefix('citizen')->name('citizen.')->group(function () {
     Route::get('/laporan', CitizenHomeController::class)->name('home');
