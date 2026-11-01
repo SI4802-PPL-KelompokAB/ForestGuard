@@ -35,17 +35,17 @@
                     @if ($isInProgress)
                         <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
                             <span class="h-2 w-2 animate-pulse rounded-full bg-emerald-500"></span>
-                            Berlangsung
+                            <strong>Berlangsung</strong>
                         </span>
                     @elseif ($isCompleted)
                         <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-500">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            Selesai
+                            <strong>Selesai</strong>
                         </span>
                     @else
                         <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            Ditugaskan
+                            <strong>Ditugaskan</strong>
                         </span>
                     @endif
                 </div>

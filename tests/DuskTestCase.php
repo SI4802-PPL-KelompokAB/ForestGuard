@@ -25,7 +25,7 @@ abstract class DuskTestCase extends BaseTestCase
 
         Browser::macro('loginAsAdmin', function () {
             /** @var Browser $this */
-            return $this->visit('/login')
+            return $this->logout()->visit('/login')
                 ->type('email', 'admin@forestguard.test')
                 ->type('password', UserSeeder::DEV_PASSWORD)
                 ->press('Masuk')
@@ -34,7 +34,7 @@ abstract class DuskTestCase extends BaseTestCase
 
         Browser::macro('loginAsRanger', function () {
             /** @var Browser $this */
-            return $this->visit('/login')
+            return $this->logout()->visit('/login')
                 ->type('email', 'ranger1@forestguard.test')
                 ->type('password', UserSeeder::DEV_PASSWORD)
                 ->press('Masuk')
@@ -43,7 +43,7 @@ abstract class DuskTestCase extends BaseTestCase
 
         Browser::macro('loginAsCitizen', function () {
             /** @var Browser $this */
-            return $this->visit('/login')
+            return $this->logout()->visit('/login')
                 ->type('email', 'citizen1@forestguard.test')
                 ->type('password', UserSeeder::DEV_PASSWORD)
                 ->press('Masuk')
@@ -53,7 +53,7 @@ abstract class DuskTestCase extends BaseTestCase
 
     public function loginAsAdmin(Browser $browser): Browser
     {
-        return $browser->visit('/login')
+        return $browser->logout()->visit('/login')
             ->type('email', 'admin@forestguard.test')
             ->type('password', UserSeeder::DEV_PASSWORD)
             ->press('Masuk')
@@ -62,7 +62,7 @@ abstract class DuskTestCase extends BaseTestCase
 
     public function loginAsRanger(Browser $browser): Browser
     {
-        return $browser->visit('/login')
+        return $browser->logout()->visit('/login')
             ->type('email', 'ranger1@forestguard.test')
             ->type('password', UserSeeder::DEV_PASSWORD)
             ->press('Masuk')
@@ -71,7 +71,7 @@ abstract class DuskTestCase extends BaseTestCase
 
     public function loginAsCitizen(Browser $browser): Browser
     {
-        return $browser->visit('/login')
+        return $browser->logout()->visit('/login')
             ->type('email', 'citizen1@forestguard.test')
             ->type('password', UserSeeder::DEV_PASSWORD)
             ->press('Masuk')

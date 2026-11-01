@@ -109,6 +109,7 @@ jobs:
 
       - name: Run Laravel Dusk Tests
         run: |
-          php artisan serve --env=dusk.local --port=8000 &
+          cp .env.dusk.local .env
+          php artisan serve --port=8000 &
           sleep 3
           php artisan dusk
