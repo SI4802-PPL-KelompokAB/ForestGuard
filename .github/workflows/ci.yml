@@ -107,8 +107,9 @@ jobs:
       - name: Migrate & Seed Dusk Database
         run: php artisan migrate:fresh --seed --env=dusk.local --force
 
-      - name: Start Application Server for Dusk
-        run: php artisan serve --env=dusk.local --port=8000 &
-
       - name: Run Laravel Dusk Tests
-        run: php artisan dusk
+        run: |
+          cp .env.dusk.local .env
+          php artisan serve --port=8000 &
+          sleep 3
+          php artisan dusk

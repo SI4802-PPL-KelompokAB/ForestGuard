@@ -25,7 +25,10 @@ abstract class DuskTestCase extends BaseTestCase
 
         Browser::macro('loginAsAdmin', function () {
             /** @var Browser $this */
+            $this->driver->manage()->deleteAllCookies();
+
             return $this->visit('/login')
+                ->waitFor('input#email')
                 ->type('email', 'admin@forestguard.test')
                 ->type('password', UserSeeder::DEV_PASSWORD)
                 ->press('Masuk')
@@ -34,7 +37,10 @@ abstract class DuskTestCase extends BaseTestCase
 
         Browser::macro('loginAsRanger', function () {
             /** @var Browser $this */
+            $this->driver->manage()->deleteAllCookies();
+
             return $this->visit('/login')
+                ->waitFor('input#email')
                 ->type('email', 'ranger1@forestguard.test')
                 ->type('password', UserSeeder::DEV_PASSWORD)
                 ->press('Masuk')
@@ -43,7 +49,10 @@ abstract class DuskTestCase extends BaseTestCase
 
         Browser::macro('loginAsCitizen', function () {
             /** @var Browser $this */
+            $this->driver->manage()->deleteAllCookies();
+
             return $this->visit('/login')
+                ->waitFor('input#email')
                 ->type('email', 'citizen1@forestguard.test')
                 ->type('password', UserSeeder::DEV_PASSWORD)
                 ->press('Masuk')
@@ -53,29 +62,17 @@ abstract class DuskTestCase extends BaseTestCase
 
     public function loginAsAdmin(Browser $browser): Browser
     {
-        return $browser->visit('/login')
-            ->type('email', 'admin@forestguard.test')
-            ->type('password', UserSeeder::DEV_PASSWORD)
-            ->press('Masuk')
-            ->waitForRoute('admin.dashboard');
+        return $browser->loginAsAdmin();
     }
 
     public function loginAsRanger(Browser $browser): Browser
     {
-        return $browser->visit('/login')
-            ->type('email', 'ranger1@forestguard.test')
-            ->type('password', UserSeeder::DEV_PASSWORD)
-            ->press('Masuk')
-            ->waitForRoute('ranger.home');
+        return $browser->loginAsRanger();
     }
 
     public function loginAsCitizen(Browser $browser): Browser
     {
-        return $browser->visit('/login')
-            ->type('email', 'citizen1@forestguard.test')
-            ->type('password', UserSeeder::DEV_PASSWORD)
-            ->press('Masuk')
-            ->waitForRoute('citizen.home');
+        return $browser->loginAsCitizen();
     }
 
     /**

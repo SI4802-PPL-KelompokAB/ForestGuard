@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\CaseStatus;
 use App\Models\Checkpoint;
 use App\Models\ForestArea;
 use App\Models\IncidentType;
@@ -31,7 +30,7 @@ class Pbi04MasterDataTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Kawasan Hutan');
-        $response->assertSee('Taman Nasional Way Kambas');
+        $response->assertSee('Taman Nasional Gunung Ciremai');
     }
 
     public function test_admin_can_create_forest_area_with_valid_data(): void

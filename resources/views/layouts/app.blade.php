@@ -14,13 +14,16 @@
         $navItems = [];
         if ($user?->isCitizen()) {
             $navItems[] = ['label' => 'Laporan Saya', 'href' => route('citizen.home'), 'active' => 'citizen.home'];
+            $navItems[] = ['label' => 'Buat Laporan', 'href' => route('citizen.incidents.create'), 'active' => 'citizen.incidents.create'];
         }
         if ($user?->isRanger()) {
             $navItems[] = ['label' => 'Beranda Ranger', 'href' => route('ranger.home'), 'active' => 'ranger.home'];
             $navItems[] = ['label' => 'Patroli', 'href' => route('ranger.patrols.index'), 'active' => 'ranger.patrols.*'];
+            $navItems[] = ['label' => 'Lapor Insiden', 'href' => route('ranger.incidents.create'), 'active' => 'ranger.incidents.*'];
         }
         if ($user?->isAdmin()) {
             $navItems[] = ['label' => 'Dasbor', 'href' => route('admin.dashboard'), 'active' => 'admin.dashboard'];
+            $navItems[] = ['label' => 'Kasus', 'href' => route('admin.incidents.index'), 'active' => 'admin.incidents.*'];
             $navItems[] = ['label' => 'Pengguna', 'href' => route('admin.users.index'), 'active' => 'admin.users.*'];
             $navItems[] = ['label' => 'Patroli', 'href' => route('admin.patrols.index'), 'active' => 'admin.patrols.*'];
             $navItems[] = ['label' => 'Data Master', 'href' => route('admin.master.forest-areas.index'), 'active' => 'admin.master.*'];
