@@ -13,7 +13,9 @@ class ExampleTest extends DuskTestCase
     public function test_basic_example(): void
     {
         $this->browse(function (Browser $browser) {
+            $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/login')
+                ->waitForText('ForestGuard')
                 ->assertSee('ForestGuard');
         });
     }
