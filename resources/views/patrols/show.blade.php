@@ -226,7 +226,7 @@
                                 @csrf
                                 <x-button class="gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                                    Mulai Patroli
+                                    Mulai patroli
                                 </x-button>
                             </form>
                         @endif
@@ -235,7 +235,7 @@
                         <div class="space-y-3">
                             <x-button type="button" data-finish-open class="gap-2 border border-red-200 !bg-red-50 !text-red-700 hover:!bg-red-100">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
-                                Akhiri Patroli
+                                Akhiri patroli
                             </x-button>
                         </div>
 
