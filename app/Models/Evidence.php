@@ -8,8 +8,6 @@ use InvalidArgumentException;
 
 class Evidence extends Model
 {
-    public $timestamps = false;
-
     protected $table = 'evidences';
 
     protected $fillable = [

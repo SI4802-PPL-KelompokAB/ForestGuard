@@ -36,7 +36,7 @@ class Patrol extends Model
             'scheduled_at' => PatrolTimestamp::class,
             'started_at' => PatrolTimestamp::class,
             'ended_at' => PatrolTimestamp::class,
-            'total_distance_km' => 'decimal:3',
+            'total_distance_km' => 'decimal:3' ,
             'status' => PatrolStatus::class,
             'created_at' => PatrolTimestamp::class,
         ];
@@ -56,7 +56,7 @@ class Patrol extends Model
         return max(0, ($this->ended_at?->getTimestamp() ?? now('UTC')->getTimestamp()) - $this->started_at->getTimestamp());
     }
 
-    /** @return array{id: int, code: string, status: string, started_at: ?string, ended_at: ?string, duration_seconds: ?int} */
+    /** @return array{id: int, code: string, status: string, started_at: ?string, ended_at: ?string, duration_seconds: ?int, total_distance_km: ?string} */
     public function executionState(): array
     {
         return [
@@ -66,6 +66,7 @@ class Patrol extends Model
             'started_at' => $this->started_at?->toISOString(),
             'ended_at' => $this->ended_at?->toISOString(),
             'duration_seconds' => $this->durationSeconds(),
+            'total_distance_km' => $this->total_distance_km,
         ];
     }
 
