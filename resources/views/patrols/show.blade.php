@@ -253,7 +253,7 @@
                                 @csrf
                                 <x-button class="gap-2 !bg-red-600 hover:!bg-red-700">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
-                                    Ya, Akhiri Patroli
+                                    Ya, akhiri patroli
                                 </x-button>
                                 <x-button type="button" data-finish-cancel class="!bg-slate-100 !text-slate-700 hover:!bg-slate-200">Batal</x-button>
                             </form>

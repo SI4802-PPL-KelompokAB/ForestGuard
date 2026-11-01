@@ -34,7 +34,7 @@ class Pbi05PatrolAssignmentTest extends DuskTestCase
             $browser->press('Tugaskan patroli')->waitForText('berhasil ditugaskan');
             $patrol = Patrol::sole();
             $browser->loginAs($ranger)->resize(360, 800)->visitRoute('ranger.patrols.index')
-                ->assertSee($patrol->code)->clickLink('Buka detail')->waitForText('Rencana checkpoint')
+                ->assertSee($patrol->code)->clickLink('Buka detail')->waitForText('Rencana Checkpoint')
                 ->assertSee('Ditugaskan')->assertSee('27/10/2026 08:30')
                 ->assertSeeIn('ol li:nth-child(1)', 'CP-FIRST')->assertSeeIn('ol li:nth-child(2)', 'CP-SECOND');
             $this->assertTrue($browser->script('return document.documentElement.scrollWidth <= window.innerWidth')[0]);

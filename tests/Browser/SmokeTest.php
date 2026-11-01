@@ -13,8 +13,7 @@ class SmokeTest extends DuskTestCase
     public function test_login_page_opens_successfully(): void
     {
         $this->browse(function (Browser $browser) {
-            $browser->logout()
-                ->visit('/login')
+            $browser->visit('/login')
                 ->waitForText('Masuk ke akun')
                 ->assertSee('Daftar sebagai warga')
                 ->assertPresent('input#email')

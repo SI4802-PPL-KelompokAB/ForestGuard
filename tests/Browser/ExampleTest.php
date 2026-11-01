@@ -13,7 +13,7 @@ class ExampleTest extends DuskTestCase
     public function test_basic_example(): void
     {
         $this->browse(function (Browser $browser) {
-            $browser->visit('/')
+            $browser->visit('/login')
                 ->assertSee('ForestGuard');
         });
     }
