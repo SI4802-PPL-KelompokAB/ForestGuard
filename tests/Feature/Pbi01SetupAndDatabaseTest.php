@@ -73,11 +73,11 @@ class Pbi01SetupAndDatabaseTest extends TestCase
         $this->assertGreaterThanOrEqual(10, Checkpoint::count());
         $this->assertTrue(Checkpoint::where('code', 'CP-GC-01')->exists());
 
-        // 5 Sample Users (1 admin, 2 rangers, 2 citizens)
-        $this->assertDatabaseCount('users', 5);
-        $this->assertEquals(1, User::whereHas('role', fn ($q) => $q->where('name', Role::ADMIN))->count());
-        $this->assertEquals(2, User::whereHas('role', fn ($q) => $q->where('name', Role::RANGER))->count());
-        $this->assertEquals(2, User::whereHas('role', fn ($q) => $q->where('name', Role::CITIZEN))->count());
+        // Sample Users (admins, rangers, citizens)
+        $this->assertDatabaseCount('users', 13);
+        $this->assertEquals(2, User::whereHas('role', fn ($q) => $q->where('name', Role::ADMIN))->count());
+        $this->assertEquals(5, User::whereHas('role', fn ($q) => $q->where('name', Role::RANGER))->count());
+        $this->assertEquals(6, User::whereHas('role', fn ($q) => $q->where('name', Role::CITIZEN))->count());
     }
 
     public function test_seeder_is_idempotent_when_run_multiple_times(): void

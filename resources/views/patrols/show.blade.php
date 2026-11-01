@@ -184,7 +184,7 @@
                                 Dikunjungi
                             </span>
                         @else
-                            <span class="shrink-0 text-xs text-slate-400">Belum</span>
+                            <span class="shrink-0 text-xs text-slate-400">Belum dikunjungi</span>
                         @endif
                     </li>
                 @endforeach

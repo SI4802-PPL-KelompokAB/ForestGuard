@@ -42,7 +42,7 @@ class Pbi03UserManagementTest extends TestCase
         $response->assertOk();
         $response->assertSee('Ranger Satu');
         $response->assertDontSee('Warga Satu');
-        $response->assertDontSee('Admin Hutan');
+        $response->assertDontSee('admin@forestguard.test');
     }
 
     public function test_admin_can_create_ranger_who_can_then_login(): void
