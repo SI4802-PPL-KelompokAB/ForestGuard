@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\CaseStatus;
 use App\Models\Checkpoint;
 use App\Models\ForestArea;
 use App\Models\IncidentType;

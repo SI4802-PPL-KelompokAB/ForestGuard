@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\IncidentController as AdminIncidentController;
 use App\Http\Controllers\Admin\Master\CaseStatusController;
 use App\Http\Controllers\Admin\Master\CheckpointController;
 use App\Http\Controllers\Admin\Master\ForestAreaController;
@@ -12,7 +13,9 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Citizen\HomeController as CitizenHomeController;
+use App\Http\Controllers\Citizen\IncidentController as CitizenIncidentController;
 use App\Http\Controllers\Ranger\HomeController as RangerHomeController;
+use App\Http\Controllers\Ranger\IncidentController as RangerIncidentController;
 use App\Http\Controllers\Ranger\PatrolController as RangerPatrolController;
 use App\Support\RoleHome;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +41,9 @@ Route::post('/logout', LogoutController::class)
 
 Route::middleware(['auth', 'active', 'role:citizen'])->prefix('citizen')->name('citizen.')->group(function () {
     Route::get('/laporan', CitizenHomeController::class)->name('home');
+    Route::get('/laporan/buat', [CitizenIncidentController::class, 'create'])->name('incidents.create');
+    Route::post('/laporan', [CitizenIncidentController::class, 'store'])->name('incidents.store');
+    Route::get('/laporan/{incident}', [CitizenIncidentController::class, 'show'])->name('incidents.show');
 });
 
 Route::middleware(['auth', 'active', 'role:ranger'])->prefix('ranger')->name('ranger.')->group(function () {
@@ -46,10 +52,17 @@ Route::middleware(['auth', 'active', 'role:ranger'])->prefix('ranger')->name('ra
     Route::get('/patroli/{patrol}', [RangerPatrolController::class, 'show'])->name('patrols.show');
     Route::post('/patroli/{patrol}/mulai', [RangerPatrolController::class, 'start'])->name('patrols.start');
     Route::post('/patroli/{patrol}/akhiri', [RangerPatrolController::class, 'finish'])->name('patrols.finish');
+    Route::get('/laporan/buat', [RangerIncidentController::class, 'create'])->name('incidents.create');
+    Route::post('/laporan', [RangerIncidentController::class, 'store'])->name('incidents.store');
+    Route::get('/laporan/{incident}', [RangerIncidentController::class, 'show'])->name('incidents.show');
+    Route::post('/kasus/{incident}/status', [RangerIncidentController::class, 'updateStatus'])->name('cases.update-status');
 });
 
 Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/kasus', [AdminIncidentController::class, 'index'])->name('incidents.index');
+    Route::get('/kasus/{incident}', [AdminIncidentController::class, 'show'])->name('incidents.show');
+    Route::post('/kasus/{incident}/status', [AdminIncidentController::class, 'updateStatus'])->name('incidents.update-status');
     Route::get('/patroli', [AdminPatrolController::class, 'index'])->name('patrols.index');
     Route::post('/patroli', [AdminPatrolController::class, 'store'])->name('patrols.store');
     Route::get('/patroli/{patrol}', [AdminPatrolController::class, 'show'])->name('patrols.show');
