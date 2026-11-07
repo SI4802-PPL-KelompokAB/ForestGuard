@@ -45,6 +45,53 @@ async function initPatrolTrackingAndMap() {
     }).addTo(map);
 
     let currentMarker = null;
+    const allBounds = [];
+
+    // Render planned checkpoints on map if available
+    if (mapContainer.dataset.checkpoints) {
+        try {
+            const checkpoints = JSON.parse(mapContainer.dataset.checkpoints);
+            if (Array.isArray(checkpoints)) {
+                checkpoints.forEach(cp => {
+                    const lat = Number(cp.lat);
+                    const lng = Number(cp.lng);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        allBounds.push([lat, lng]);
+                        const isVisited = Boolean(cp.visited);
+
+                        const markerHtml = `
+                            <div class="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white shadow-md border-2 border-white ${isVisited ? 'bg-emerald-600' : 'bg-amber-500'}">
+                                ${cp.sequence || '•'}
+                            </div>
+                        `;
+
+                        const customIcon = L.divIcon({
+                            html: markerHtml,
+                            className: 'custom-cp-marker',
+                            iconSize: [28, 28],
+                            iconAnchor: [14, 14],
+                            popupAnchor: [0, -14],
+                        });
+
+                        L.marker([lat, lng], { icon: customIcon })
+                            .addTo(map)
+                            .bindPopup(`
+                                <div class="p-1 text-xs">
+                                    <strong class="text-sm font-semibold text-slate-800">${cp.name}</strong>
+                                    <span class="text-slate-400">(${cp.code})</span><br>
+                                    <span class="text-slate-500">Urutan Checkpoint #${cp.sequence}</span><br>
+                                    <span class="inline-block mt-1.5 px-2 py-0.5 rounded text-[11px] font-medium ${isVisited ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                                        ${isVisited ? '✓ Sudah Dikunjungi' : 'Belum Dikunjungi'}
+                                    </span>
+                                </div>
+                            `);
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('Gagal memuat checkpoint pada peta:', e);
+        }
+    }
 
     // Fetch existing tracks
     if (tracksUrl) {
@@ -58,7 +105,7 @@ async function initPatrolTrackingAndMap() {
                 if (Array.isArray(data.tracks) && data.tracks.length > 0) {
                     const latLngs = data.tracks.map(t => [Number(t.latitude), Number(t.longitude)]);
                     polyline.setLatLngs(latLngs);
-                    map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
+                    latLngs.forEach(coord => allBounds.push(coord));
 
                     // Marker on start point
                     L.circleMarker(latLngs[0], {
@@ -76,6 +123,11 @@ async function initPatrolTrackingAndMap() {
         } catch (e) {
             console.warn('Gagal memuat track sebelumnya:', e);
         }
+    }
+
+    // Adjust zoom if bounds exist
+    if (allBounds.length > 0) {
+        map.fitBounds(L.latLngBounds(allBounds), { padding: [35, 35] });
     }
 
     // If patrol is in progress and user is ranger, start tracking GPS
@@ -189,8 +241,16 @@ async function initPatrolTrackingAndMap() {
                 }
             },
             error => {
-                console.warn('Geolocation error:', error.message);
-                updateGpsStatus(`Sinyal GPS lemah: ${error.message}`, false);
+                let msg = error.message;
+                if (error.code === 1) {
+                    msg = 'Akses lokasi/GPS ditolak di browser.';
+                } else if (error.code === 2) {
+                    msg = 'Sinyal GPS tidak tersedia pada perangkat.';
+                } else if (error.code === 3) {
+                    msg = 'Pencarian sinyal GPS timeout.';
+                }
+                console.warn('Geolocation error:', msg);
+                updateGpsStatus(`GPS bermasalah: ${msg}`, false);
             },
             {
                 enableHighAccuracy: true,

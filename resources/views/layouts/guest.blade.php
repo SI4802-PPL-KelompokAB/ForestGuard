@@ -11,7 +11,7 @@
 <body class="bg-forest-50 text-slate-800 antialiased">
     <div class="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center px-4 py-8">
         <header class="mb-6 text-center">
-            <p class="text-sm font-semibold uppercase tracking-wide text-forest-700">ForestGuard</p>
+            <p class="text-sm font-semibold tracking-wide text-forest-700">ForestGuard</p>
             <h1 class="mt-1 text-2xl font-semibold text-forest-900">@yield('heading', 'Masuk ke akun')</h1>
         </header>
         @yield('content')

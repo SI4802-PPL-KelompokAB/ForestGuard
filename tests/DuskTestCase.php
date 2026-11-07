@@ -23,8 +23,11 @@ abstract class DuskTestCase extends BaseTestCase
             static::startChromeDriver(['--port=9515']);
         }
 
+        Browser::$waitSeconds = 15;
+
         Browser::macro('loginAsAdmin', function () {
             /** @var Browser $this */
+            $this->logout();
             $this->driver->manage()->deleteAllCookies();
 
             return $this->visit('/login')
@@ -37,6 +40,7 @@ abstract class DuskTestCase extends BaseTestCase
 
         Browser::macro('loginAsRanger', function () {
             /** @var Browser $this */
+            $this->logout();
             $this->driver->manage()->deleteAllCookies();
 
             return $this->visit('/login')
@@ -49,6 +53,7 @@ abstract class DuskTestCase extends BaseTestCase
 
         Browser::macro('loginAsCitizen', function () {
             /** @var Browser $this */
+            $this->logout();
             $this->driver->manage()->deleteAllCookies();
 
             return $this->visit('/login')
