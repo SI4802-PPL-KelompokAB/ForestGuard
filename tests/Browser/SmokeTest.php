@@ -13,6 +13,7 @@ class SmokeTest extends DuskTestCase
     public function test_login_page_opens_successfully(): void
     {
         $this->browse(function (Browser $browser) {
+            $browser->logout();
             $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/login')
                 ->waitForText('Masuk ke akun')
