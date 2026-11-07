@@ -224,4 +224,39 @@ class Pbi07PatrolTrackTest extends TestCase
             ->assertJsonPath('patrol_id', $patrol->id)
             ->assertJsonCount(3, 'tracks');
     }
+
+    public function test_admin_can_fetch_all_tracks_for_any_patrol(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $patrol = Patrol::factory()->inProgress()->create();
+        PatrolTrack::factory()->for($patrol)->count(4)->create();
+
+        $response = $this->actingAs($admin)
+            ->getJson(route('admin.patrols.tracks.index', $patrol));
+
+        $response->assertOk()
+            ->assertJsonPath('patrol_id', $patrol->id)
+            ->assertJsonCount(4, 'tracks');
+    }
+
+    public function test_non_admin_cannot_fetch_admin_patrol_tracks(): void
+    {
+        $patrol = Patrol::factory()->inProgress()->create();
+        $citizen = User::factory()->citizen()->create();
+        $ranger = User::factory()->ranger()->create();
+
+        // Guest unauthorized
+        $this->getJson(route('admin.patrols.tracks.index', $patrol))
+            ->assertUnauthorized();
+
+        // Citizen forbidden
+        $this->actingAs($citizen)
+            ->getJson(route('admin.patrols.tracks.index', $patrol))
+            ->assertForbidden();
+
+        // Ranger forbidden on admin route
+        $this->actingAs($ranger)
+            ->getJson(route('admin.patrols.tracks.index', $patrol))
+            ->assertForbidden();
+    }
 }

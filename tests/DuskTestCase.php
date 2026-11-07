@@ -23,6 +23,8 @@ abstract class DuskTestCase extends BaseTestCase
             static::startChromeDriver(['--port=9515']);
         }
 
+        Browser::$waitSeconds = 15;
+
         Browser::macro('loginAsAdmin', function () {
             /** @var Browser $this */
             $this->driver->manage()->deleteAllCookies();
