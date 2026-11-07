@@ -6,6 +6,14 @@
     @php
         $isInProgress = $patrol->status === \App\Enums\PatrolStatus::InProgress;
         $isCompleted  = $patrol->status === \App\Enums\PatrolStatus::Completed;
+        $checkpointsData = $patrol->patrolCheckpoints->map(fn ($pc) => [
+            'sequence' => $pc->sequence,
+            'name' => $pc->checkpoint->name,
+            'code' => $pc->checkpoint->code,
+            'lat' => (float) $pc->checkpoint->latitude,
+            'lng' => (float) $pc->checkpoint->longitude,
+            'visited' => ! is_null($pc->visited_at),
+        ])->values()->all();
     @endphp
 
     {{-- Back link --}}
@@ -151,14 +159,7 @@
             <div id="patrol-map" class="h-80 w-full bg-slate-100"
                  data-patrol-tracks-url="{{ route(auth()->user()->isAdmin() ? 'admin.patrols.tracks.index' : 'ranger.patrols.tracks.index', $patrol) }}"
                  data-record-track-url="{{ auth()->user()->isRanger() ? route('ranger.patrols.tracks.store', $patrol) : '' }}"
-                 data-checkpoints='@json($patrol->patrolCheckpoints->map(fn($pc) => [
-                     'sequence' => $pc->sequence,
-                     'name' => $pc->checkpoint->name,
-                     'code' => $pc->checkpoint->code,
-                     'lat' => (float) $pc->checkpoint->latitude,
-                     'lng' => (float) $pc->checkpoint->longitude,
-                     'visited' => !is_null($pc->visited_at),
-                 ]))'>
+                 data-checkpoints="{{ json_encode($checkpointsData) }}">
             </div>
         </div>
 
