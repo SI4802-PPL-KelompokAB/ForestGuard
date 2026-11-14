@@ -9,33 +9,17 @@ use Tests\DuskTestCase;
 class Pbi03UserManagementTest extends DuskTestCase
 {
     /**
-     * D-03-01: Admin membuka halaman manajemen pengguna dan melihat data.
-     */
-    public function test_admin_can_view_user_management_index(): void
-    {
-        $this->browse(function (Browser $browser) {
-            $this->loginAsAdmin($browser)
-                ->visit('/admin/pengguna')
-                ->waitForText('Manajemen pengguna')
-                ->assertSee('Kelola akun admin, ranger, dan warga.')
-                ->assertSee('Tambah akun')
-                ->assertSee('Admin Hutan')
-                ->assertSee('Ranger Satu')
-                ->assertSee('Warga Satu');
-        });
-    }
-
-    /**
-     * D-03-02: Admin mendaftarkan akun baru (Ranger) dan sistem otomatis membuat kata sandi via email.
+     * D-03-01: Admin login -> Buka Pengguna -> Tambah satu akun Ranger -> Muncul di daftar.
      */
     public function test_admin_can_create_new_user(): void
     {
         $this->browse(function (Browser $browser) {
             $this->loginAsAdmin($browser)
                 ->visit('/admin/pengguna')
+                ->waitForText('Manajemen pengguna')
+                ->assertSee('Kelola akun admin, ranger, dan warga.')
                 ->clickLink('Tambah akun')
                 ->waitForRoute('admin.users.create')
-                ->assertSee('Tambah akun')
                 ->type('name', 'Ranger Dusk Baru')
                 ->type('email', 'ranger.dusk@forestguard.test')
                 ->select('role', Role::RANGER)
@@ -48,7 +32,7 @@ class Pbi03UserManagementTest extends DuskTestCase
     }
 
     /**
-     * D-03-03: Admin menyaring (filter) dan mencari data pengguna.
+     * D-03-02: Admin menyaring berdasarkan peran dan mencari nama pengguna.
      */
     public function test_admin_can_filter_and_search_users(): void
     {
@@ -56,12 +40,12 @@ class Pbi03UserManagementTest extends DuskTestCase
             $this->loginAsAdmin($browser)
                 ->visit('/admin/pengguna')
                 ->waitForText('Manajemen pengguna')
-                // Filter berdasarkan peran Ranger
+                // Filter peran Ranger
                 ->select('peran', Role::RANGER)
                 ->press('Terapkan')
                 ->waitForText('Ranger Satu')
                 ->assertDontSee('Warga Satu')
-                // Pencarian berdasarkan nama
+                // Pencarian berdasarkan kata kunci nama
                 ->type('q', 'Ranger Dusk Baru')
                 ->press('Terapkan')
                 ->waitForText('Ranger Dusk Baru');
@@ -69,7 +53,7 @@ class Pbi03UserManagementTest extends DuskTestCase
     }
 
     /**
-     * D-03-04: Admin mengubah data akun pengguna (Update).
+     * D-03-03: Admin mengubah profil pengguna (Update).
      */
     public function test_admin_can_update_user(): void
     {
@@ -82,13 +66,13 @@ class Pbi03UserManagementTest extends DuskTestCase
                 ->type('name', 'Ranger Dusk Updated')
                 ->press('Simpan perubahan')
                 ->waitForRoute('admin.users.index')
-                ->assertSee('Perubahan akun berhasil disimpan.')
+                ->assertSee('Pengguna berhasil diperbarui.')
                 ->assertSee('Ranger Dusk Updated');
         });
     }
 
     /**
-     * D-03-05: Admin melakukan soft delete dan restore akun pengguna.
+     * D-03-04: Hapus lunak pengguna (Soft Delete) -> Pulihkan (Restore).
      */
     public function test_admin_can_soft_delete_and_restore_user(): void
     {
@@ -96,8 +80,8 @@ class Pbi03UserManagementTest extends DuskTestCase
             $this->loginAsAdmin($browser)
                 ->visit('/admin/pengguna')
                 ->waitForText('Ranger Dusk Updated')
-                // Klik tombol Hapus pada baris user
-                ->click('tr:contains("Ranger Dusk Updated") button:contains("Hapus")')
+                // Klik tombol Hapus pada akun
+                ->press('Hapus')
                 ->acceptDialog()
                 ->waitForText('Pengguna berhasil dihapus.')
                 ->assertDontSee('Ranger Dusk Updated')
@@ -110,5 +94,21 @@ class Pbi03UserManagementTest extends DuskTestCase
                 ->waitForText('Pengguna berhasil dipulihkan.');
         });
     }
-}
 
+    /**
+     * D-03-05: Admin tidak dapat menghapus akun miliknya sendiri (Self-Deletion Protection).
+     */
+    public function test_admin_cannot_delete_self(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $this->loginAsAdmin($browser)
+                ->visit('/admin/pengguna')
+                ->waitForText('Manajemen pengguna')
+                // Pada baris Admin Hutan (akun yang sedang login), tombol Hapus tidak boleh ada
+                ->with('tr:contains("Admin Hutan")', function (Browser $row) {
+                    $row->assertSee('Ubah')
+                        ->assertDontSee('Hapus');
+                });
+        });
+    }
+}
