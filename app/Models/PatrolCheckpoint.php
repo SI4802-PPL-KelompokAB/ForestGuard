@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PatrolTimestamp;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -23,7 +24,7 @@ class PatrolCheckpoint extends Model
     {
         return [
             'sequence' => 'integer',
-            'visited_at' => 'datetime',
+            'visited_at' => PatrolTimestamp::class,
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
         ];

@@ -163,42 +163,11 @@
             </div>
         </div>
 
-        {{-- ===== CHECKPOINTS CARD ===== --}}
-        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div class="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-forest-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                </svg>
-                <h2 class="font-semibold text-slate-800">Rencana Checkpoint</h2>
-                @php($totalCheckpoints = $patrol->patrolCheckpoints->count())
-                @php($visitedCheckpoints = $patrol->patrolCheckpoints->whereNotNull('visited_at')->count())
-                <span class="ml-auto text-xs text-slate-400">{{ $visitedCheckpoints }}/{{ $totalCheckpoints }} dikunjungi</span>
-            </div>
-            <ol class="divide-y divide-slate-100">
-                @foreach ($patrol->patrolCheckpoints as $planned)
-                    <li class="flex items-center gap-4 px-5 py-3.5">
-                        {{-- Sequence number --}}
-                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold {{ $planned->visited_at ? 'bg-forest-700 text-white' : 'bg-slate-100 text-slate-400' }}">
-                            {{ $planned->sequence }}
-                        </span>
-                        {{-- Checkpoint info --}}
-                        <div class="min-w-0 flex-1">
-                            <p class="text-sm font-medium text-slate-800">{{ $planned->checkpoint->name }}</p>
-                            <p class="text-xs text-slate-400">{{ $planned->checkpoint->code }}</p>
-                        </div>
-                        {{-- Visited status --}}
-                        @if ($planned->visited_at)
-                            <span class="shrink-0 text-xs font-medium text-emerald-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="inline h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                Dikunjungi
-                            </span>
-                        @else
-                            <span class="shrink-0 text-xs text-slate-400">Belum dikunjungi</span>
-                        @endif
-                    </li>
-                @endforeach
-            </ol>
+        <div data-checkpoints-card class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            @include('patrols._checkpoints')
         </div>
+
+        @include('patrols._field-recording')
 
         {{-- ===== ACTION CARD (ranger only) ===== --}}
         @if (auth()->user()->isRanger())
@@ -256,7 +225,7 @@
                             <h2 id="finish-title" class="text-lg font-bold text-slate-900">Akhiri patroli ini?</h2>
                             @php($unvisitedCount = $patrol->patrolCheckpoints->whereNull('visited_at')->count())
                             <p class="my-2 text-sm text-slate-500">
-                                Masih ada <strong class="text-slate-700">{{ $unvisitedCount }} checkpoint</strong> belum dikunjungi. Patroli tetap dapat diakhiri.
+                                Masih ada <strong data-unvisited-count class="text-slate-700">{{ $unvisitedCount }} checkpoint</strong> belum dikunjungi. Patroli tetap dapat diakhiri.
                             </p>
                             <form method="POST" action="{{ route('ranger.patrols.finish', $patrol) }}" data-patrol-mutation class="mt-4 space-y-2">
                                 @csrf

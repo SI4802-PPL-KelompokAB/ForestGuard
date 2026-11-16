@@ -2,11 +2,21 @@
 
 namespace Tests\Browser;
 
+use Database\Seeders\DatabaseSeeder;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class SmokeTest extends DuskTestCase
 {
+    use DatabaseMigrations;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
+    }
+
     /**
      * Smoke test: halaman login terbuka dengan benar.
      */

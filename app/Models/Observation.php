@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PatrolTimestamp;
 use App\Enums\ObservationCategory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +20,7 @@ class Observation extends Model
         'latitude',
         'longitude',
         'observed_at',
+        'location_recorded_at',
     ];
 
     protected function casts(): array
@@ -27,7 +29,8 @@ class Observation extends Model
             'category' => ObservationCategory::class,
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
-            'observed_at' => 'datetime',
+            'observed_at' => PatrolTimestamp::class,
+            'location_recorded_at' => PatrolTimestamp::class,
         ];
     }
 

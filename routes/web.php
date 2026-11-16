@@ -19,6 +19,7 @@ use App\Http\Controllers\EvidenceTestController;
 use App\Http\Controllers\Ranger\HomeController as RangerHomeController;
 use App\Http\Controllers\Ranger\IncidentController as RangerIncidentController;
 use App\Http\Controllers\Ranger\PatrolController as RangerPatrolController;
+use App\Http\Controllers\Ranger\PatrolFieldRecordController;
 use App\Support\RoleHome;
 use Illuminate\Support\Facades\Route;
 
@@ -65,6 +66,8 @@ Route::middleware(['auth', 'active', 'role:ranger'])->prefix('ranger')->name('ra
     Route::post('/patroli/{patrol}/akhiri', [RangerPatrolController::class, 'finish'])->name('patrols.finish');
     Route::get('/patroli/{patrol}/tracks', [RangerPatrolController::class, 'tracks'])->name('patrols.tracks.index');
     Route::post('/patroli/{patrol}/tracks', [RangerPatrolController::class, 'recordTrack'])->name('patrols.tracks.store');
+    Route::post('/patroli/{patrol}/checkpoints/{plannedCheckpoint}', [PatrolFieldRecordController::class, 'checkpoint'])->name('patrols.checkpoints.visit');
+    Route::post('/patroli/{patrol}/observasi', [PatrolFieldRecordController::class, 'observation'])->name('patrols.observations.store');
     Route::get('/laporan/buat', [RangerIncidentController::class, 'create'])->name('incidents.create');
     Route::post('/laporan', [RangerIncidentController::class, 'store'])->name('incidents.store');
     Route::get('/laporan/{incident}', [RangerIncidentController::class, 'show'])->name('incidents.show');

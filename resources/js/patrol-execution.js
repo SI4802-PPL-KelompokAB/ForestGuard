@@ -65,8 +65,12 @@ if (execution) {
     });
     window.addEventListener('online', async () => {
         try {
-            await readState();
-            window.location.reload();
+            const current = await readState();
+            if (current.patrol.status !== execution.dataset.status) {
+                window.location.reload();
+            } else {
+                setDisabled(false);
+            }
         } catch {
             message.textContent = warning;
         }

@@ -3,6 +3,7 @@
     'label' => 'Unggah Bukti Foto Lapangan',
     'latitude' => null,
     'longitude' => null,
+    'captureLocation' => true,
 ])
 
 @php
@@ -13,8 +14,8 @@
     <label class="block text-sm font-medium text-slate-700">{{ $label }}</label>
 
     {{-- Input Tersembunyi untuk Koordinat Browser Geolocation --}}
-    <input type="hidden" name="latitude" id="{{ $id }}_lat" value="{{ old('latitude', $latitude) }}">
-    <input type="hidden" name="longitude" id="{{ $id }}_lng" value="{{ old('longitude', $longitude) }}">
+    <input type="hidden" @if($captureLocation) name="latitude" @endif id="{{ $id }}_lat" value="{{ old('latitude', $latitude) }}">
+    <input type="hidden" @if($captureLocation) name="longitude" @endif id="{{ $id }}_lng" value="{{ old('longitude', $longitude) }}">
 
     {{-- Area Drag and Drop & Tombol Pilihan --}}
     <div
@@ -137,8 +138,13 @@
     const ALLOWED_MIME = ['image/jpeg', 'image/jpg', 'image/png'];
     const ALLOWED_EXT = ['.jpg', '.jpeg', '.png'];
 
+    fileInput.closest('form')?.addEventListener('reset', function() {
+        clearFile();
+        hideError();
+    });
+
     // 1. Geolocation API: Ambil koordinat browser secara background
-    if (navigator.geolocation && (!latInput.value || !lngInput.value)) {
+    if (@json($captureLocation) && navigator.geolocation && (!latInput.value || !lngInput.value)) {
         navigator.geolocation.getCurrentPosition(
             function(position) {
                 latInput.value = position.coords.latitude.toFixed(7);
@@ -152,7 +158,7 @@
             },
             { enableHighAccuracy: true, timeout: 7000, maximumAge: 60000 }
         );
-    } else if (latInput.value && lngInput.value) {
+    } else if (@json($captureLocation) && latInput.value && lngInput.value) {
         geoText.textContent = 'Lokasi perangkat (' + latInput.value + ', ' + lngInput.value + ')';
         geoStatus.classList.remove('hidden');
     }

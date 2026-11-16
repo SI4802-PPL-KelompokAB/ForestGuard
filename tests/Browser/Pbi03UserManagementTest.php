@@ -231,6 +231,7 @@ class Pbi03UserManagementTest extends DuskTestCase
     /** TC-PBI03-05a : filter peran */
     public function test_admin_can_filter_by_role(): void
     {
+        User::factory()->ranger()->create(['name' => 'Ranger Dusk Baru']);
         $this->browse(function (Browser $browser) {
             $this->loginAsAdminUser($browser)
                 ->visit('/admin/pengguna')
