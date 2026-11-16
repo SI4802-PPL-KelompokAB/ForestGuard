@@ -105,6 +105,15 @@ jobs:
         run: php artisan dusk:chrome-driver --detect || true
 
       - name: Migrate & Seed Dusk Database
+        env:
+          APP_ENV: dusk.local
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: forestguard_dusk
+          DB_USERNAME: postgres
+          DB_PASSWORD: password
+          DB_SSLMODE: disable
         run: php artisan migrate:fresh --seed --env=dusk.local --force
 
       - name: Run Laravel Dusk Tests
