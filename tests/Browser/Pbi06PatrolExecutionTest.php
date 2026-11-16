@@ -73,12 +73,16 @@ class Pbi06PatrolExecutionTest extends DuskTestCase
 window.patrolFetch = window.fetch.bind(window);
 sessionStorage.setItem('patrolRequests', '[]');
 window.fetch = async (url, options = {}) => {
-    if (String(url).includes('/track')) return window.patrolFetch(url, options);
+    const actualUrl = typeof url === 'string' ? url : (url?.url || '');
+    if (!actualUrl.includes('/mulai') && !actualUrl.match(/\/patroli\/\d+$/)) {
+        return window.patrolFetch(url, options);
+    }
     const calls = JSON.parse(sessionStorage.getItem('patrolRequests'));
-    calls.push(options.method || 'GET');
+    const method = (options?.method || (url instanceof Request ? url.method : 'GET')).toUpperCase();
+    calls.push(method);
     sessionStorage.setItem('patrolRequests', JSON.stringify(calls));
     const response = await window.patrolFetch(url, options);
-    if (options.method === 'POST') throw new TypeError('Simulated lost confirmation');
+    if (method === 'POST') throw new TypeError('Simulated lost confirmation');
     return response;
 };
 JS);
