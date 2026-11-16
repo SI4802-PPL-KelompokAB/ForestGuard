@@ -83,27 +83,7 @@
             </div>
 
             {{-- 6. Koordinat GPS --}}
-            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-sm font-semibold text-slate-800">Titik Koordinat Lokasi Kejadian (GPS) <span class="text-red-500">*</span></span>
-                    <button type="button" id="btnGetLocation" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-forest-700 text-white rounded-lg hover:bg-forest-800 transition">
-                        Ambil Lokasi Saat Ini
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label for="latitude" class="block text-xs font-medium text-slate-600 mb-1">Latitude</label>
-                        <input type="number" step="any" name="latitude" id="latitude" value="{{ old('latitude') }}"
-                               placeholder="-6.7574000" class="w-full rounded-lg border-slate-300 shadow-sm text-sm" required>
-                    </div>
-                    <div>
-                        <label for="longitude" class="block text-xs font-medium text-slate-600 mb-1">Longitude</label>
-                        <input type="number" step="any" name="longitude" id="longitude" value="{{ old('longitude') }}"
-                               placeholder="107.6199200" class="w-full rounded-lg border-slate-300 shadow-sm text-sm" required>
-                    </div>
-                </div>
-                <p id="gpsStatus" class="text-xs text-slate-500"></p>
-            </div>
+            <x-location-picker :latitude="old('latitude')" :longitude="old('longitude')" :accuracy="old('gps_accuracy')" />
 
             {{-- Disclaimer --}}
             <div class="rounded-lg bg-amber-50 p-3 border border-amber-200 text-xs text-amber-800">
@@ -126,14 +106,9 @@
         const charCount = document.getElementById('charCount');
         const photoInput = document.getElementById('photo');
         const photoPreview = document.getElementById('photoPreview');
-        const btnGetLocation = document.getElementById('btnGetLocation');
-        const latInput = document.getElementById('latitude');
-        const lngInput = document.getElementById('longitude');
-        const gpsStatus = document.getElementById('gpsStatus');
         const form = document.getElementById('incidentForm');
         const btnSubmit = document.getElementById('btnSubmit');
 
-        // Character counter
         const updateCharCount = () => {
             const count = descInput.value.length;
             charCount.textContent = `${count} / min 15 karakter`;
@@ -148,7 +123,6 @@
         descInput.addEventListener('input', updateCharCount);
         updateCharCount();
 
-        // Photo preview
         photoInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -161,27 +135,6 @@
             }
         });
 
-        // Geolocation fetch
-        btnGetLocation.addEventListener('click', () => {
-            if (!navigator.geolocation) {
-                gpsStatus.textContent = 'Geolocation tidak didukung oleh browser Anda.';
-                return;
-            }
-            gpsStatus.textContent = 'Mendeteksi titik koordinat perangkat...';
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    latInput.value = pos.coords.latitude.toFixed(7);
-                    lngInput.value = pos.coords.longitude.toFixed(7);
-                    gpsStatus.textContent = `Koordinat berhasil diambil (Akurasi: ±${Math.round(pos.coords.accuracy)} meter).`;
-                },
-                (err) => {
-                    gpsStatus.textContent = 'Gagal mengakses GPS: ' + err.message;
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
-        });
-
-        // Prevent double submission
         form.addEventListener('submit', () => {
             btnSubmit.disabled = true;
             btnSubmit.innerHTML = 'Mengirim Laporan...';

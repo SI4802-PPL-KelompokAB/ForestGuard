@@ -19,3 +19,14 @@
 body {
     min-height: 100dvh;
 }
+
+.leaflet-container {
+    height: 100%;
+    width: 100%;
+    background: #e2e8f0;
+}
+
+.leaflet-control-zoom {
+    border: 0 !important;
+    box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.18) !important;
+}
