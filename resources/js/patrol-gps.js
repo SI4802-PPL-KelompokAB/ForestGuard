@@ -1,3 +1,5 @@
+import { rememberDevicePosition } from './device-location';
+
 /**
  * PBI-07: Pelacakan Rute GPS Selama Patroli (FR-07)
  * Merekam titik koordinat GPS perangkat Ranger secara berkala saat patroli berlangsung,
@@ -46,6 +48,17 @@ async function initPatrolTrackingAndMap() {
 
     let currentMarker = null;
     const allBounds = [];
+
+    window.addEventListener('patrol-checkpoint-recorded', async () => {
+        try {
+            const response = await fetch(tracksUrl, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+            if (!response.ok) return;
+            const result = await response.json();
+            polyline.setLatLngs(result.tracks.map(track => [Number(track.latitude), Number(track.longitude)]));
+        } catch (error) {
+            console.warn('Rute belum dapat dimuat ulang:', error);
+        }
+    });
 
     // Render planned checkpoints on map if available
     if (mapContainer.dataset.checkpoints) {
@@ -229,6 +242,7 @@ async function initPatrolTrackingAndMap() {
         updateGpsStatus('Mencari sinyal GPS...', false);
         const watchId = navigator.geolocation.watchPosition(
             position => {
+                rememberDevicePosition(position);
                 const { latitude, longitude, accuracy } = position.coords;
 
                 // Threshold movement to avoid excessive noise (approx > 5 meters)

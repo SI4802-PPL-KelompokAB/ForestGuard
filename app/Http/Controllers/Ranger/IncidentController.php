@@ -10,6 +10,7 @@ use App\Http\Requests\StoreIncidentRequest;
 use App\Models\ForestArea;
 use App\Models\Incident;
 use App\Models\IncidentType;
+use App\Models\Observation;
 use App\Models\Patrol;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,12 +28,23 @@ class IncidentController extends Controller
             ->where('status', PatrolStatus::InProgress)
             ->first();
 
-        return view('ranger.incidents.create', compact('incidentTypes', 'forestAreas', 'activePatrol'));
+        $sourceObservation = null;
+        if ($request->filled('observation')) {
+            $sourceObservation = Observation::with('patrol.forestArea')
+                ->whereHas('patrol', fn ($query) => $query->where('ranger_id', $request->user()->id))
+                ->findOrFail($request->integer('observation'));
+        }
+
+        return view('ranger.incidents.create', compact('incidentTypes', 'forestAreas', 'activePatrol', 'sourceObservation'));
     }
 
     public function store(StoreIncidentRequest $request, StoreIncidentReport $action): RedirectResponse
     {
         $validated = $request->validated();
+
+        if (! empty($validated['patrol_id'])) {
+            $request->user()->patrols()->findOrFail($validated['patrol_id']);
+        }
 
         // Automatically assign active patrol if not provided and exists
         if (empty($validated['patrol_id'])) {

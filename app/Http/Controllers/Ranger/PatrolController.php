@@ -31,7 +31,7 @@ class PatrolController extends Controller
 
     public function show(Request $request, int $patrol): Response|JsonResponse
     {
-        $patrol = $request->user()->patrols()->with(['forestArea', 'ranger', 'creator', 'patrolCheckpoints.checkpoint'])->findOrFail($patrol);
+        $patrol = $request->user()->patrols()->with(['forestArea', 'ranger', 'creator', 'patrolCheckpoints.checkpoint', 'observations.evidences'])->findOrFail($patrol);
         $active = $this->activePatrol($request->user());
 
         if ($request->expectsJson()) {
@@ -106,7 +106,7 @@ class PatrolController extends Controller
         try {
             $patrol = $transitionPatrol->handle($request->user(), $patrolId, $target);
         } catch (PatrolConflict $exception) {
-            $patrol = $request->user()->patrols()->with(['forestArea', 'ranger', 'creator', 'patrolCheckpoints.checkpoint'])->findOrFail($patrolId);
+            $patrol = $request->user()->patrols()->with(['forestArea', 'ranger', 'creator', 'patrolCheckpoints.checkpoint', 'observations.evidences'])->findOrFail($patrolId);
             $active = $this->activePatrol($request->user());
             if ($request->expectsJson()) {
                 return response()->json(['message' => $exception->getMessage(), 'patrol' => $patrol->executionState(), 'active_patrol_id' => $active?->id], 409)->header('Cache-Control', 'no-store');
