@@ -69,6 +69,45 @@ class ForestAreaSeeder extends Seeder
                     107.0100000
                 ),
             ],
+            [
+                'name' => 'Taman Nasional Gunung Halimun Salak',
+                'description' => 'Kawasan konservasi hutan hujan pegunungan di wilayah Sukabumi dan Bogor, Jawa Barat.',
+                'area_ha' => 113357.00,
+                'center_lat' => -6.7100000,
+                'center_lng' => 106.5500000,
+                'boundary' => $this->polygon(
+                    -6.7700000,
+                    106.4500000,
+                    -6.6500000,
+                    106.6500000
+                ),
+            ],
+            [
+                'name' => 'Cagar Alam Pananjung Pangandaran',
+                'description' => 'Kawasan cagar alam pesisir dan hutan pantai di semenanjung Pangandaran, Jawa Barat.',
+                'area_ha' => 530.00,
+                'center_lat' => -7.7000000,
+                'center_lng' => 108.6550000,
+                'boundary' => $this->polygon(
+                    -7.7150000,
+                    108.6400000,
+                    -7.6850000,
+                    108.6700000
+                ),
+            ],
+            [
+                'name' => 'Kawasan Hutan Gunung Papandayan',
+                'description' => 'Kawasan taman wisata alam dan hutan lindung pegunungan di Garut, Jawa Barat.',
+                'area_ha' => 6807.00,
+                'center_lat' => -7.3200000,
+                'center_lng' => 107.7300000,
+                'boundary' => $this->polygon(
+                    -7.3500000,
+                    107.7000000,
+                    -7.2900000,
+                    107.7600000
+                ),
+            ],
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\WithinWestJavaBounds;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -23,7 +24,7 @@ class StoreIncidentRequest extends FormRequest
             'forest_area_id' => ['required', 'integer', 'exists:forest_areas,id,deleted_at,NULL'],
             'occurred_at' => ['required', 'date', 'before_or_equal:now'],
             'description' => ['required', 'string', 'min:15', 'max:2000'],
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'latitude' => ['required', 'numeric', 'between:-90,90', new WithinWestJavaBounds],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'gps_accuracy' => ['nullable', 'numeric', 'min:0'],
             'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
