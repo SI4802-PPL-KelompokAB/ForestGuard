@@ -11,14 +11,13 @@ use Database\Seeders\ForestAreaSeeder;
 use Database\Seeders\IncidentTypeSeeder;
 use Database\Seeders\RiskLevelSeeder;
 use Database\Seeders\RoleSeeder;
+use Database\Seeders\UserSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 /**
  * PBI-11: Alur Status Kasus & Riwayat Timeline — Laravel Dusk
- *
- * Prasyarat seed: RoleSeeder, CaseStatusSeeder, IncidentTypeSeeder, RiskLevelSeeder, ForestAreaSeeder
  */
 class Pbi11CaseStatusTransitionTest extends DuskTestCase
 {
@@ -34,25 +33,22 @@ class Pbi11CaseStatusTransitionTest extends DuskTestCase
             IncidentTypeSeeder::class,
             RiskLevelSeeder::class,
             ForestAreaSeeder::class,
+            UserSeeder::class,
         ]);
     }
 
     /**
-     * Buat admin user untuk test.
-     */
-    private function makeAdmin(): User
-    {
-        return User::factory()->admin()->create();
-    }
-
-    /**
-     * Buat incident dengan status tertentu.
+     * Buat incident dengan status tertentu menggunakan seeded reporter.
      */
     private function makeIncidentWithStatus(string $statusName): Incident
     {
         $statusId = CaseStatus::where('name', $statusName)->value('id');
+        $citizen = User::where('email', 'citizen1@forestguard.test')->firstOrFail();
 
-        return Incident::factory()->create(['case_status_id' => $statusId]);
+        return Incident::factory()->create([
+            'case_status_id' => $statusId,
+            'reporter_id' => $citizen->id,
+        ]);
     }
 
     /**
@@ -60,11 +56,10 @@ class Pbi11CaseStatusTransitionTest extends DuskTestCase
      */
     public function test_admin_can_view_case_detail_with_status_and_tahapan_kasus(): void
     {
-        $admin = $this->makeAdmin();
         $incident = $this->makeIncidentWithStatus('Reported');
 
-        $this->browse(function (Browser $browser) use ($admin, $incident): void {
-            $browser->loginAs($admin)
+        $this->browse(function (Browser $browser) use ($incident): void {
+            $this->loginAsAdmin($browser)
                 ->visitRoute('admin.incidents.show', $incident)
                 ->waitForText('Tahapan Kasus')
                 ->assertSee('Tahapan Kasus')
@@ -79,11 +74,10 @@ class Pbi11CaseStatusTransitionTest extends DuskTestCase
      */
     public function test_admin_can_transition_reported_to_under_verification(): void
     {
-        $admin = $this->makeAdmin();
         $incident = $this->makeIncidentWithStatus('Reported');
 
-        $this->browse(function (Browser $browser) use ($admin, $incident): void {
-            $browser->loginAs($admin)
+        $this->browse(function (Browser $browser) use ($incident): void {
+            $this->loginAsAdmin($browser)
                 ->visitRoute('admin.incidents.show', $incident)
                 ->waitForText('Mulai Verifikasi Kasus')
                 ->press('Mulai Verifikasi Kasus')
@@ -102,12 +96,11 @@ class Pbi11CaseStatusTransitionTest extends DuskTestCase
      */
     public function test_admin_can_verify_incident_with_risk_level(): void
     {
-        $admin = $this->makeAdmin();
         $incident = $this->makeIncidentWithStatus('Under Verification');
         $riskLevel = RiskLevel::where('name', 'Sedang')->firstOrFail();
 
-        $this->browse(function (Browser $browser) use ($admin, $incident, $riskLevel): void {
-            $browser->loginAs($admin)
+        $this->browse(function (Browser $browser) use ($incident, $riskLevel): void {
+            $this->loginAsAdmin($browser)
                 ->visitRoute('admin.incidents.show', $incident)
                 ->waitForText('Verifikasi Laporan')
                 ->select('risk_level_id', (string) $riskLevel->id)
@@ -127,11 +120,10 @@ class Pbi11CaseStatusTransitionTest extends DuskTestCase
      */
     public function test_admin_can_reject_incident_with_reason(): void
     {
-        $admin = $this->makeAdmin();
         $incident = $this->makeIncidentWithStatus('Under Verification');
 
-        $this->browse(function (Browser $browser) use ($admin, $incident): void {
-            $browser->loginAs($admin)
+        $this->browse(function (Browser $browser) use ($incident): void {
+            $this->loginAsAdmin($browser)
                 ->visitRoute('admin.incidents.show', $incident)
                 ->waitForText('Tolak Laporan Ini')
                 ->type('reject_reason', 'Laporan tidak terbukti berdasarkan hasil pengecekan lapangan.')
@@ -151,11 +143,10 @@ class Pbi11CaseStatusTransitionTest extends DuskTestCase
      */
     public function test_admin_can_resolve_monitoring_case_with_resolution_note(): void
     {
-        $admin = $this->makeAdmin();
         $incident = $this->makeIncidentWithStatus('Monitoring');
 
-        $this->browse(function (Browser $browser) use ($admin, $incident): void {
-            $browser->loginAs($admin)
+        $this->browse(function (Browser $browser) use ($incident): void {
+            $this->loginAsAdmin($browser)
                 ->visitRoute('admin.incidents.show', $incident)
                 ->waitForText('Selesaikan dan Tutup Kasus')
                 ->type('resolution_note', 'Ancaman telah tertangani dan wilayah kembali normal.')
@@ -175,11 +166,10 @@ class Pbi11CaseStatusTransitionTest extends DuskTestCase
      */
     public function test_timeline_section_is_visible_on_admin_case_detail(): void
     {
-        $admin = $this->makeAdmin();
         $incident = $this->makeIncidentWithStatus('Reported');
 
-        $this->browse(function (Browser $browser) use ($admin, $incident): void {
-            $browser->loginAs($admin)
+        $this->browse(function (Browser $browser) use ($incident): void {
+            $this->loginAsAdmin($browser)
                 ->visitRoute('admin.incidents.show', $incident)
                 ->waitForText('Lini Masa Riwayat Kasus')
                 ->assertSee('Lini Masa Riwayat Kasus');
@@ -191,14 +181,14 @@ class Pbi11CaseStatusTransitionTest extends DuskTestCase
      */
     public function test_citizen_can_view_their_incident_status_on_show_page(): void
     {
-        $citizen = User::factory()->citizen()->create();
+        $citizen = User::where('email', 'citizen1@forestguard.test')->firstOrFail();
         $incident = Incident::factory()->create([
             'reporter_id' => $citizen->id,
             'case_status_id' => CaseStatus::where('name', 'Reported')->value('id'),
         ]);
 
-        $this->browse(function (Browser $browser) use ($citizen, $incident): void {
-            $browser->loginAs($citizen)
+        $this->browse(function (Browser $browser) use ($incident): void {
+            $this->loginAsCitizen($browser)
                 ->visitRoute('citizen.incidents.show', $incident)
                 ->waitForText('Tahapan penanganan')
                 ->assertSee('Tahapan penanganan')

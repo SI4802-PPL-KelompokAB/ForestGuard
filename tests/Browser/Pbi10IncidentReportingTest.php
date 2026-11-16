@@ -4,19 +4,17 @@ namespace Tests\Browser;
 
 use App\Models\ForestArea;
 use App\Models\IncidentType;
-use App\Models\User;
 use Database\Seeders\CaseStatusSeeder;
 use Database\Seeders\ForestAreaSeeder;
 use Database\Seeders\IncidentTypeSeeder;
 use Database\Seeders\RoleSeeder;
+use Database\Seeders\UserSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 /**
  * PBI-10: Pelaporan Insiden oleh Citizen & Ranger — Laravel Dusk
- *
- * Prasyarat seed: RoleSeeder, CaseStatusSeeder, IncidentTypeSeeder, ForestAreaSeeder, UserSeeder
  */
 class Pbi10IncidentReportingTest extends DuskTestCase
 {
@@ -31,6 +29,7 @@ class Pbi10IncidentReportingTest extends DuskTestCase
             CaseStatusSeeder::class,
             IncidentTypeSeeder::class,
             ForestAreaSeeder::class,
+            UserSeeder::class,
         ]);
     }
 
@@ -39,10 +38,8 @@ class Pbi10IncidentReportingTest extends DuskTestCase
      */
     public function test_citizen_can_access_incident_report_form(): void
     {
-        $citizen = User::factory()->citizen()->create();
-
-        $this->browse(function (Browser $browser) use ($citizen): void {
-            $browser->loginAs($citizen)
+        $this->browse(function (Browser $browser): void {
+            $this->loginAsCitizen($browser)
                 ->visitRoute('citizen.incidents.create')
                 ->waitForText('Buat Laporan Insiden')
                 ->assertSee('Buat Laporan Insiden')
@@ -73,26 +70,18 @@ class Pbi10IncidentReportingTest extends DuskTestCase
      */
     public function test_citizen_can_submit_incident_report_and_see_incident_code(): void
     {
-        $citizen = User::factory()->citizen()->create();
         $incidentType = IncidentType::firstOrFail();
         $forestArea = ForestArea::firstOrFail();
         $testImagePath = base_path('tests/Browser/fixtures/test-photo.jpg');
 
-        $this->browse(function (Browser $browser) use ($citizen, $incidentType, $forestArea, $testImagePath): void {
-            $browser->loginAs($citizen)
+        $this->browse(function (Browser $browser) use ($incidentType, $forestArea, $testImagePath): void {
+            $this->loginAsCitizen($browser)
                 ->visitRoute('citizen.incidents.create')
                 ->waitForText('Buat Laporan Insiden');
 
-            // Pilih jenis insiden (radio button pertama)
             $browser->radio('incident_type_id', (string) $incidentType->id);
-
-            // Pilih kawasan hutan
             $browser->select('forest_area_id', (string) $forestArea->id);
-
-            // Isi deskripsi (min 15 karakter)
             $browser->type('description', 'Ditemukan penebangan pohon liar di kawasan hutan lindung ini.');
-
-            // Upload foto
             $browser->attach('photo', $testImagePath);
 
             // Set koordinat GPS via JS (dalam batas Jawa Barat)
@@ -101,12 +90,10 @@ class Pbi10IncidentReportingTest extends DuskTestCase
                 .'document.querySelector(\'input[name="longitude"]\').value = \'107.6500\';'
             );
 
-            // Kirim laporan
             $browser->press('Kirim Laporan')
                 ->waitForText('Laporan berhasil terkirim', 15)
                 ->assertSee('Laporan berhasil terkirim');
 
-            // Pastikan kode laporan INC- tampil
             $browser->assertSeeIn('.font-mono', 'INC-');
         });
     }
@@ -116,13 +103,12 @@ class Pbi10IncidentReportingTest extends DuskTestCase
      */
     public function test_validation_error_shown_for_short_description(): void
     {
-        $citizen = User::factory()->citizen()->create();
         $incidentType = IncidentType::firstOrFail();
         $forestArea = ForestArea::firstOrFail();
         $testImagePath = base_path('tests/Browser/fixtures/test-photo.jpg');
 
-        $this->browse(function (Browser $browser) use ($citizen, $incidentType, $forestArea, $testImagePath): void {
-            $browser->loginAs($citizen)
+        $this->browse(function (Browser $browser) use ($incidentType, $forestArea, $testImagePath): void {
+            $this->loginAsCitizen($browser)
                 ->visitRoute('citizen.incidents.create')
                 ->waitForText('Buat Laporan Insiden');
 
@@ -131,7 +117,6 @@ class Pbi10IncidentReportingTest extends DuskTestCase
 
             // Deskripsi kurang dari 15 karakter
             $browser->type('description', 'Singkat');
-
             $browser->attach('photo', $testImagePath);
 
             $browser->script(
@@ -150,13 +135,11 @@ class Pbi10IncidentReportingTest extends DuskTestCase
      */
     public function test_ranger_can_access_ranger_incident_report_form(): void
     {
-        $ranger = User::factory()->ranger()->create();
-
-        $this->browse(function (Browser $browser) use ($ranger): void {
-            $browser->loginAs($ranger)
+        $this->browse(function (Browser $browser): void {
+            $this->loginAsRanger($browser)
                 ->visitRoute('ranger.incidents.create')
-                ->waitForText('Buat Laporan Insiden')
-                ->assertSee('Buat Laporan Insiden')
+                ->waitForText('Lapor Insiden Lapangan')
+                ->assertSee('Lapor Insiden Lapangan')
                 ->assertPresent('input[name=incident_type_id]')
                 ->assertPresent('#forest_area_id');
         });

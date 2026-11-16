@@ -3,12 +3,37 @@
 namespace Tests\Browser;
 
 use App\Models\Patrol;
+use Database\Seeders\CaseStatusSeeder;
+use Database\Seeders\CheckpointSeeder;
+use Database\Seeders\ForestAreaSeeder;
+use Database\Seeders\IncidentTypeSeeder;
+use Database\Seeders\RiskLevelSeeder;
+use Database\Seeders\RoleSeeder;
+use Database\Seeders\UserSeeder;
 use Facebook\WebDriver\WebDriverBy;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class Pbi25LocationPickerTest extends DuskTestCase
 {
+    use DatabaseMigrations;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed([
+            RoleSeeder::class,
+            CaseStatusSeeder::class,
+            IncidentTypeSeeder::class,
+            RiskLevelSeeder::class,
+            ForestAreaSeeder::class,
+            CheckpointSeeder::class,
+            UserSeeder::class,
+        ]);
+    }
+
     public function test_map_starts_without_default_marker_and_shows_pin_after_map_click(): void
     {
         $this->browse(function (Browser $browser): void {
