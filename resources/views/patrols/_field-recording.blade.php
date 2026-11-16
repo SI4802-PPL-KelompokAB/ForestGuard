@@ -8,7 +8,7 @@
     @if (auth()->user()->isRanger() && $patrol->ranger_id === auth()->id() && $isInProgress)
         <details data-observation-details class="rounded-xl border border-slate-200 p-4">
             <summary class="cursor-pointer py-2 text-sm font-semibold text-forest-800">Tambah observasi</summary>
-            <form method="POST" action="{{ route('ranger.patrols.observations.store', $patrol) }}" enctype="multipart/form-data" data-observation-form class="mt-4 space-y-4">
+            <form method="POST" action="{{ route('ranger.patrols.observations.store', $patrol) }}" enctype="multipart/form-data" data-observation-form novalidate class="mt-4 space-y-4">
                 @csrf
                 <input type="hidden" name="client_uuid" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
                 <input type="hidden" name="location_recorded_at">

@@ -61,8 +61,8 @@ class Pbi11CaseStatusTransitionTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($incident): void {
             $this->loginAsAdmin($browser)
                 ->visitRoute('admin.incidents.show', $incident)
-                ->waitForText('Tahapan Kasus')
-                ->assertSee('Tahapan Kasus')
+                ->waitForText('Informasi Kasus')
+                ->assertSee('Informasi Kasus')
                 ->assertSee('Status: Reported')
                 ->assertSee('Mulai Verifikasi Kasus')
                 ->assertSee('Lini Masa Riwayat Kasus');

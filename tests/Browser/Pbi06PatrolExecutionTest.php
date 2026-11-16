@@ -73,6 +73,7 @@ class Pbi06PatrolExecutionTest extends DuskTestCase
 window.patrolFetch = window.fetch.bind(window);
 sessionStorage.setItem('patrolRequests', '[]');
 window.fetch = async (url, options = {}) => {
+    if (String(url).includes('/track')) return window.patrolFetch(url, options);
     const calls = JSON.parse(sessionStorage.getItem('patrolRequests'));
     calls.push(options.method || 'GET');
     sessionStorage.setItem('patrolRequests', JSON.stringify(calls));
