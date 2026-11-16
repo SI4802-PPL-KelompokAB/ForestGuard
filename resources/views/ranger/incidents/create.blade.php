@@ -33,11 +33,14 @@
     @endif
 
     <x-card>
+        @if ($sourceObservation)
+            <p class="mb-4 text-sm text-slate-600">Dari observasi {{ $sourceObservation->category->value }} pada patroli {{ $sourceObservation->patrol->code }}. Periksa rincian, pilih jenis insiden, dan lampirkan foto sebelum mengirim laporan.</p>
+        @endif
         <form method="POST" action="{{ route('ranger.incidents.store') }}" enctype="multipart/form-data" id="incidentForm" class="space-y-6">
             @csrf
             <input type="hidden" name="client_uuid" id="client_uuid" value="{{ old('client_uuid', (string) Illuminate\Support\Str::uuid()) }}">
-            @if ($activePatrol)
-                <input type="hidden" name="patrol_id" value="{{ $activePatrol->id }}">
+            @if ($sourceObservation || $activePatrol)
+                <input type="hidden" name="patrol_id" value="{{ $sourceObservation?->patrol_id ?? $activePatrol->id }}">
             @endif
 
             {{-- 1. Jenis Insiden --}}
@@ -59,7 +62,7 @@
                 <select name="forest_area_id" id="forest_area_id" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-forest-600 focus:ring-forest-500 text-sm" required>
                     <option value="">-- Pilih Kawasan Hutan --</option>
                     @foreach ($forestAreas as $area)
-                        <option value="{{ $area->id }}" {{ (old('forest_area_id', $activePatrol?->forest_area_id) == $area->id) ? 'selected' : '' }}>
+                        <option value="{{ $area->id }}" {{ (old('forest_area_id', $sourceObservation?->patrol->forest_area_id ?? $activePatrol?->forest_area_id) == $area->id) ? 'selected' : '' }}>
                             {{ $area->name }}
                         </option>
                     @endforeach
@@ -70,7 +73,7 @@
             <div>
                 <label for="occurred_at" class="block text-sm font-semibold text-slate-800 mb-1">Waktu Kejadian <span class="text-red-500">*</span></label>
                 <input type="datetime-local" name="occurred_at" id="occurred_at"
-                       value="{{ old('occurred_at', now()->format('Y-m-d\TH:i')) }}"
+                       value="{{ old('occurred_at', ($sourceObservation?->observed_at?->timezone(config('app.timezone')) ?? now())->format('Y-m-d\TH:i')) }}"
                        max="{{ now()->format('Y-m-d\TH:i') }}"
                        class="w-full rounded-lg border-slate-300 shadow-sm focus:border-forest-600 focus:ring-forest-500 text-sm" required>
             </div>
@@ -83,7 +86,7 @@
                 </div>
                 <textarea name="description" id="description" rows="4"
                           class="w-full rounded-lg border-slate-300 shadow-sm focus:border-forest-600 focus:ring-forest-500 text-sm"
-                          placeholder="Jelaskan temuan di lapangan secara detail (minimal 15 karakter)..." required>{{ old('description') }}</textarea>
+                          placeholder="Jelaskan temuan di lapangan secara detail (minimal 15 karakter)..." required>{{ old('description', $sourceObservation?->description) }}</textarea>
             </div>
 
             {{-- 5. Foto Bukti --}}
@@ -98,7 +101,7 @@
             </div>
 
             {{-- 6. Koordinat GPS --}}
-            <x-location-picker :latitude="old('latitude')" :longitude="old('longitude')" :accuracy="old('gps_accuracy')" />
+           <x-location-picker :latitude="old('latitude', $sourceObservation?->latitude)" :longitude="old('longitude', $sourceObservation?->longitude)" :accuracy="old('gps_accuracy')" />
 
             {{-- Submit Button --}}
             <div class="pt-2">
