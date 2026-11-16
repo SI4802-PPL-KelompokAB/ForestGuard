@@ -23,7 +23,8 @@ class Pbi08FieldRecordingTest extends DuskTestCase
             'checkpoint_id' => Checkpoint::factory()->for($patrol->forestArea)->create()->id,
         ]);
         $this->browse(function (Browser $browser) use ($patrol, $checkpoint): void {
-            $browser->loginAs($patrol->ranger)->resize(360, 800)->visitRoute('ranger.patrols.show', $patrol);
+            $browser->loginAs($patrol->ranger)->resize(360, 800);
+            $this->visitPatrolWithoutTracking($browser, $patrol);
             $this->stubLocation($browser);
             $browser->scrollIntoView('[data-checkpoint-form] button')->click('[data-checkpoint-form] button')
                 ->waitForText('Kunjungan checkpoint tersimpan.')
@@ -60,7 +61,8 @@ class Pbi08FieldRecordingTest extends DuskTestCase
             'checkpoint_id' => Checkpoint::factory()->for($patrol->forestArea)->create()->id,
         ]);
         $this->browse(function (Browser $browser) use ($patrol, $checkpoint): void {
-            $browser->loginAs($patrol->ranger)->visitRoute('ranger.patrols.show', $patrol);
+            $browser->loginAs($patrol->ranger);
+            $this->visitPatrolWithoutTracking($browser, $patrol);
             $browser->script('navigator.geolocation.getCurrentPosition = (success, failure) => failure({code: 1});');
             $browser->scrollIntoView('[data-checkpoint-form] button')->click('[data-checkpoint-form] button')
                 ->waitForText('Akses GPS ditolak.')->assertMissing('[data-observation-id]');
@@ -93,7 +95,8 @@ JS);
         $this->seed(RoleSeeder::class);
         $patrol = Patrol::factory()->inProgress()->create();
         $this->browse(function (Browser $browser) use ($patrol): void {
-            $browser->loginAs($patrol->ranger)->visitRoute('ranger.patrols.show', $patrol);
+            $browser->loginAs($patrol->ranger);
+            $this->visitPatrolWithoutTracking($browser, $patrol);
             $this->stubLocation($browser);
             $browser->scrollIntoView('[data-observation-details] summary')->click('[data-observation-details] summary')
                 ->type('description', 'Pohon besar tumbang menutup jalur');
@@ -116,6 +119,27 @@ JS);
                 ->waitForText('Observasi lapangan tersimpan.');
             $this->assertSame(1, $patrol->observations()->count());
         });
+    }
+
+    private function visitPatrolWithoutTracking(Browser $browser, Patrol $patrol): void
+    {
+        $script = $browser->driver->executeCustomCommand('/session/:sessionId/goog/cdp/execute', 'POST', [
+            'cmd' => 'Page.addScriptToEvaluateOnNewDocument',
+            'params' => ['source' => <<<'JS'
+Object.keys(localStorage)
+    .filter(key => key.startsWith('pending_patrol_tracks_'))
+    .forEach(key => localStorage.removeItem(key));
+navigator.geolocation.watchPosition = () => 0;
+JS],
+        ]);
+        try {
+            $browser->visitRoute('ranger.patrols.show', $patrol);
+        } finally {
+            $browser->driver->executeCustomCommand('/session/:sessionId/goog/cdp/execute', 'POST', [
+                'cmd' => 'Page.removeScriptToEvaluateOnNewDocument',
+                'params' => ['identifier' => $script['identifier']],
+            ]);
+        }
     }
 
     private function stubLocation(Browser $browser): void

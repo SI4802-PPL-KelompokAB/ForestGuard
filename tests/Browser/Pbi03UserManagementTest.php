@@ -3,11 +3,22 @@
 namespace Tests\Browser;
 
 use App\Models\Role;
+use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class Pbi03UserManagementTest extends DuskTestCase
 {
+    use DatabaseMigrations;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
+    }
+
     /**
      * D-03-01: Admin login -> Buka Pengguna -> Tambah satu akun Ranger -> Muncul di daftar.
      */
@@ -36,6 +47,7 @@ class Pbi03UserManagementTest extends DuskTestCase
      */
     public function test_admin_can_filter_and_search_users(): void
     {
+        User::factory()->ranger()->create(['name' => 'Ranger Dusk Baru']);
         $this->browse(function (Browser $browser) {
             $this->loginAsAdmin($browser)
                 ->visit('/admin/pengguna')
@@ -57,11 +69,12 @@ class Pbi03UserManagementTest extends DuskTestCase
      */
     public function test_admin_can_update_user(): void
     {
-        $this->browse(function (Browser $browser) {
+        $user = User::factory()->ranger()->create(['name' => 'Ranger Dusk Baru']);
+        $this->browse(function (Browser $browser) use ($user) {
             $this->loginAsAdmin($browser)
                 ->visit('/admin/pengguna')
                 ->waitForText('Ranger Dusk Baru')
-                ->click('tr:contains("Ranger Dusk Baru") a:contains("Ubah")')
+                ->click('a[href="'.route('admin.users.edit', $user).'"]')
                 ->waitForText('Ubah pengguna')
                 ->type('name', 'Ranger Dusk Updated')
                 ->press('Simpan perubahan')
@@ -76,12 +89,13 @@ class Pbi03UserManagementTest extends DuskTestCase
      */
     public function test_admin_can_soft_delete_and_restore_user(): void
     {
-        $this->browse(function (Browser $browser) {
+        $user = User::factory()->ranger()->create(['name' => 'Ranger Dusk Updated']);
+        $this->browse(function (Browser $browser) use ($user) {
             $this->loginAsAdmin($browser)
                 ->visit('/admin/pengguna')
                 ->waitForText('Ranger Dusk Updated')
                 // Klik tombol Hapus pada akun
-                ->press('Hapus')
+                ->click('form[action="'.route('admin.users.destroy', $user).'"] button')
                 ->acceptDialog()
                 ->waitForText('Pengguna berhasil dihapus.')
                 ->assertDontSee('Ranger Dusk Updated')
@@ -90,7 +104,7 @@ class Pbi03UserManagementTest extends DuskTestCase
                 ->press('Terapkan')
                 ->waitForText('Ranger Dusk Updated')
                 // Pulihkan akun
-                ->press('Pulihkan')
+                ->click('form[action="'.route('admin.users.restore', $user).'"] button')
                 ->waitForText('Pengguna berhasil dipulihkan.');
         });
     }
@@ -100,15 +114,14 @@ class Pbi03UserManagementTest extends DuskTestCase
      */
     public function test_admin_cannot_delete_self(): void
     {
-        $this->browse(function (Browser $browser) {
+        $admin = User::where('email', 'admin@forestguard.test')->firstOrFail();
+        $this->browse(function (Browser $browser) use ($admin) {
             $this->loginAsAdmin($browser)
                 ->visit('/admin/pengguna')
                 ->waitForText('Manajemen pengguna')
                 // Pada baris Admin Hutan (akun yang sedang login), tombol Hapus tidak boleh ada
-                ->with('tr:contains("Admin Hutan")', function (Browser $row) {
-                    $row->assertSee('Ubah')
-                        ->assertDontSee('Hapus');
-                });
+                ->assertPresent('a[href="'.route('admin.users.edit', $admin).'"]')
+                ->assertMissing('form[action="'.route('admin.users.destroy', $admin).'"]');
         });
     }
 }
