@@ -55,7 +55,7 @@ class PatrolController extends Controller
 
     public function show(Patrol $patrol): View
     {
-        return view('patrols.show', ['patrol' => $patrol->load(['forestArea', 'ranger', 'creator', 'patrolCheckpoints.checkpoint'])]);
+        return view('patrols.show', ['patrol' => $patrol->load(['forestArea', 'ranger', 'creator', 'patrolCheckpoints.checkpoint', 'observations.evidences'])]);
     }
 
     public function tracks(Patrol $patrol): JsonResponse
