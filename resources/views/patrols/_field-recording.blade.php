@@ -11,8 +11,6 @@
             <form method="POST" action="{{ route('ranger.patrols.observations.store', $patrol) }}" enctype="multipart/form-data" data-observation-form class="mt-4 space-y-4">
                 @csrf
                 <input type="hidden" name="client_uuid" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
-                <input type="hidden" name="latitude">
-                <input type="hidden" name="longitude">
                 <input type="hidden" name="location_recorded_at">
                 <div>
                     <label for="observation-category" class="block text-sm font-medium text-slate-700">Kategori</label>
@@ -26,10 +24,8 @@
                     <label for="observation-description" class="block text-sm font-medium text-slate-700">Catatan (minimal 5 karakter setelah trim)</label>
                     <textarea id="observation-description" name="description" rows="4" required minlength="5" class="mt-1 w-full rounded-lg border border-slate-300 p-3 text-sm"></textarea>
                 </div>
-                <div class="space-y-2 rounded-lg bg-slate-50 p-3">
-                    <p data-observation-location class="break-words text-xs text-slate-600">Belum ada lokasi GPS. Ambil lokasi perangkat untuk melanjutkan.</p>
-                    <x-button type="button" data-observation-locate>Ambil / coba lagi lokasi GPS</x-button>
-                </div>
+                <p data-observation-location class="break-words text-xs text-slate-600">Belum ada lokasi yang dipilih.</p>
+                <x-location-picker label="Titik Koordinat Observasi" :show-accuracy="false" />
                 <x-file-uploader id="observation-photo" label="Foto observasi (opsional)" :capture-location="false" />
                 <x-button data-observation-submit class="min-h-11">Simpan observasi</x-button>
             </form>

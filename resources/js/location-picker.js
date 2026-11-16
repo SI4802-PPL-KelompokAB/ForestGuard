@@ -53,7 +53,14 @@ const hasValidCoordinates = (latitude, longitude) => (
     && longitude <= 180
 );
 
-const syncMarkerFromInputs = (map, marker, latInput, lngInput, statusElement, updateStatus = true) => {
+const dispatchLocationChange = (picker, latitude, longitude) => {
+    picker.dispatchEvent(new CustomEvent('location-picker:change', {
+        bubbles: true,
+        detail: { latitude, longitude },
+    }));
+};
+
+const syncMarkerFromInputs = (picker, map, marker, latInput, lngInput, statusElement, updateStatus = true) => {
     const latitude = readCoordinate(latInput.value);
     const longitude = readCoordinate(lngInput.value);
 
@@ -70,6 +77,7 @@ const syncMarkerFromInputs = (map, marker, latInput, lngInput, statusElement, up
             const currentPosition = marker.getLatLng();
             latInput.value = currentPosition.lat.toFixed(7);
             lngInput.value = currentPosition.lng.toFixed(7);
+            dispatchLocationChange(picker, latInput.value, lngInput.value);
             updateStatusText(statusElement, 'Pin dipindahkan pada peta.', 'success');
         });
     }
@@ -137,18 +145,20 @@ const initializePicker = (picker) => {
         if (Number.isFinite(normalizedLat) && Number.isFinite(normalizedLng)) {
             latInput.value = normalizedLat.toFixed(7);
             lngInput.value = normalizedLng.toFixed(7);
-            marker = syncMarkerFromInputs(map, marker, latInput, lngInput, statusElement);
+            marker = syncMarkerFromInputs(picker, map, marker, latInput, lngInput, statusElement);
             picker.__locationMarker = marker;
+            dispatchLocationChange(picker, latInput.value, lngInput.value);
         }
 
-        if (accuracy !== null && accuracy !== undefined && Number.isFinite(Number(accuracy))) {
+        if (accuracyInput && accuracy !== null && accuracy !== undefined && Number.isFinite(Number(accuracy))) {
             accuracyInput.value = Number(accuracy).toFixed(2);
         }
     };
 
     const updateMapFromManualInput = () => {
-        marker = syncMarkerFromInputs(map, marker, latInput, lngInput, statusElement);
+        marker = syncMarkerFromInputs(picker, map, marker, latInput, lngInput, statusElement);
         picker.__locationMarker = marker;
+        dispatchLocationChange(picker, latInput.value, lngInput.value);
     };
 
     latInput.addEventListener('input', updateMapFromManualInput);
@@ -197,11 +207,17 @@ const initializePicker = (picker) => {
     }
 
     if (hasInitialCoordinates) {
-        marker = syncMarkerFromInputs(map, marker, latInput, lngInput, statusElement, false);
+        marker = syncMarkerFromInputs(picker, map, marker, latInput, lngInput, statusElement, false);
         picker.__locationMarker = marker;
     }
 
     map.invalidateSize();
+    const parentDetails = picker.closest('details');
+    parentDetails?.addEventListener('toggle', () => {
+        if (parentDetails.open) {
+            requestAnimationFrame(() => map.invalidateSize());
+        }
+    });
 };
 
 const initializeLocationPickers = () => {

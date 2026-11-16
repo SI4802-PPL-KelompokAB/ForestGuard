@@ -1,4 +1,4 @@
-import { captureDeviceLocation, latestDeviceLocation } from './device-location';
+import { captureDeviceLocation } from './device-location';
 
 const fieldRecording = document.querySelector('[data-field-recording]');
 const checkpointsCard = document.querySelector('[data-checkpoints-card]');
@@ -8,14 +8,42 @@ if (fieldRecording && document.querySelector('[data-patrol-execution]')?.dataset
     const message = fieldRecording.querySelector('[data-field-message]');
     const locationDisplay = fieldRecording.querySelector('[data-observation-location]');
     let busy = false;
-    let location = latestDeviceLocation();
+    let location = null;
+    const latitudeInput = form?.elements.namedItem('latitude');
+    const longitudeInput = form?.elements.namedItem('longitude');
+    const locationRecordedAtInput = form?.elements.namedItem('location_recorded_at');
     const showLocation = value => {
         location = value;
         if (!form || !value) return;
-        for (const key of ['latitude', 'longitude', 'location_recorded_at']) {
-            form.elements.namedItem(key).value = value[key];
+        latitudeInput.value = value.latitude;
+        longitudeInput.value = value.longitude;
+        locationRecordedAtInput.value = value.location_recorded_at;
+        for (const input of [latitudeInput, longitudeInput]) {
+            input.dispatchEvent(new Event('input', { bubbles: true }));
         }
         locationDisplay.textContent = `Lokasi GPS: ${value.latitude.toFixed(7)}, ${value.longitude.toFixed(7)}. Diambil ${new Date(value.location_recorded_at).toLocaleString('id-ID')}.`;
+    };
+    const updateLocationFromPicker = event => {
+        const latitudeValue = String(event.detail.latitude).trim();
+        const longitudeValue = String(event.detail.longitude).trim();
+        const latitude = Number(latitudeValue);
+        const longitude = Number(longitudeValue);
+
+        if (latitudeValue === '' || longitudeValue === '' || !Number.isFinite(latitude) || !Number.isFinite(longitude)
+            || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+            location = null;
+            locationRecordedAtInput.value = '';
+            locationDisplay.textContent = 'Belum ada lokasi yang valid dipilih.';
+            return;
+        }
+
+        location = {
+            latitude,
+            longitude,
+            location_recorded_at: new Date().toISOString(),
+        };
+        locationRecordedAtInput.value = location.location_recorded_at;
+        locationDisplay.textContent = `Lokasi dipilih: ${latitude.toFixed(7)}, ${longitude.toFixed(7)}.`;
     };
     const setBusy = value => {
         busy = value;
@@ -45,23 +73,7 @@ if (fieldRecording && document.querySelector('[data-patrol-execution]')?.dataset
         return result;
     };
 
-    window.addEventListener('patrol-device-location', event => {
-        if (!busy) showLocation(event.detail);
-    });
-    showLocation(location);
-    form?.querySelector('[data-observation-locate]')?.addEventListener('click', async () => {
-        if (busy) return;
-        setBusy(true);
-        message.textContent = 'Mengambil lokasi GPS…';
-        try {
-            showLocation(await captureDeviceLocation());
-            message.textContent = 'Lokasi GPS siap digunakan.';
-        } catch (error) {
-            showError(error);
-        } finally {
-            setBusy(false);
-        }
-    });
+    form?.addEventListener('location-picker:change', updateLocationFromPicker);
 
     checkpointsCard?.addEventListener('submit', async event => {
         const target = event.target.closest('[data-checkpoint-form]');
@@ -72,7 +84,6 @@ if (fieldRecording && document.querySelector('[data-patrol-execution]')?.dataset
         message.textContent = 'Mengambil GPS aktual untuk checkpoint…';
         try {
             const point = await captureDeviceLocation();
-            showLocation(point);
             const data = new FormData(target);
             data.set('latitude', point.latitude);
             data.set('longitude', point.longitude);
@@ -98,6 +109,9 @@ if (fieldRecording && document.querySelector('[data-patrol-execution]')?.dataset
         setBusy(true);
         try {
             if (!location) {
+                if (latitudeInput.value.trim() !== '' || longitudeInput.value.trim() !== '') {
+                    throw new Error('Lokasi kejadian belum ditentukan. Ambil lokasi GPS atau pilih titik pada peta.');
+                }
                 message.textContent = 'Mengambil lokasi GPS…';
                 showLocation(await captureDeviceLocation());
             }

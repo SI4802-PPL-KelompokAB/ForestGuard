@@ -56,6 +56,12 @@ class StoreObservationRequest extends StoreEvidenceRequest
             'description.min' => 'Catatan observasi minimal 5 karakter setelah trim.',
             'category.required' => 'Kategori observasi wajib dipilih.',
             'category.Illuminate\\Validation\\Rules\\Enum' => 'Kategori observasi tidak valid.',
+            'latitude.required' => 'Lokasi kejadian belum ditentukan. Ambil lokasi GPS atau pilih titik pada peta.',
+            'latitude.numeric' => 'Lokasi kejadian belum ditentukan. Ambil lokasi GPS atau pilih titik pada peta.',
+            'latitude.between' => 'Lokasi kejadian belum ditentukan. Ambil lokasi GPS atau pilih titik pada peta.',
+            'longitude.required' => 'Lokasi kejadian belum ditentukan. Ambil lokasi GPS atau pilih titik pada peta.',
+            'longitude.numeric' => 'Lokasi kejadian belum ditentukan. Ambil lokasi GPS atau pilih titik pada peta.',
+            'longitude.between' => 'Lokasi kejadian belum ditentukan. Ambil lokasi GPS atau pilih titik pada peta.',
             'location_recorded_at.required' => 'Waktu pengambilan lokasi GPS wajib disertakan.',
             'location_recorded_at.before_or_equal' => 'Waktu pengambilan lokasi GPS tidak boleh di masa depan.',
         ]);

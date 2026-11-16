@@ -2,6 +2,7 @@
 
 namespace Tests\Browser;
 
+use App\Models\Patrol;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\UserSeeder;
 use Facebook\WebDriver\WebDriverBy;
@@ -205,6 +206,39 @@ class Pbi25LocationPickerTest extends DuskTestCase
                 ->assertPresent('.leaflet-marker-icon')
                 ->assertInputValue('#latitude', '-6.7890000')
                 ->assertInputValue('#longitude', '107.6540000');
+        });
+    }
+
+    public function test_ranger_observation_form_shows_empty_location_picker_and_selects_map_point_on_mobile(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $patrol = Patrol::factory()->inProgress()->create();
+
+        $this->browse(function (Browser $browser) use ($patrol): void {
+            $browser->loginAs($patrol->ranger)
+                ->resize(360, 800)
+                ->visitRoute('ranger.patrols.show', $patrol)
+                ->scrollIntoView('[data-observation-details] summary')
+                ->click('[data-observation-details] summary')
+                ->waitFor('[data-location-picker] .leaflet-container', 15)
+                ->assertPresent('[data-location-picker] .leaflet-container')
+                ->assertMissing('[data-location-picker] .leaflet-marker-icon')
+                ->assertInputValue('[data-location-lat]', '')
+                ->assertInputValue('[data-location-lng]', '')
+                ->assertSee('Pilih lokasi dengan pin pada peta atau ambil lokasi perangkat.')
+                ->assertScript('return document.documentElement.scrollWidth <= window.innerWidth');
+
+            $browser->script(<<<'JS'
+                const picker = document.querySelector('[data-location-picker]');
+                picker.__locationMap.setView([-6.75740, 107.61992], 15);
+                picker.__locationMap.fire('click', {
+                    latlng: { lat: -6.75740, lng: 107.61992 },
+                });
+            JS)
+                ->assertPresent('[data-location-picker] .leaflet-marker-icon')
+                ->assertInputValue('[data-location-lat]', '-6.7574000')
+                ->assertInputValue('[data-location-lng]', '107.6199200')
+                ->assertScript('return document.querySelector("[data-observation-form] [name=location_recorded_at]").value !== ""');
         });
     }
 }
