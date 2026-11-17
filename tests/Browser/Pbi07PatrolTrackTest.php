@@ -59,7 +59,8 @@ class Pbi07PatrolTrackTest extends DuskTestCase
             $browser->loginAs($citizen)
                 ->visit('/ranger/patroli/'.$patrol->id)
                 ->slow()
-                ->assertSee('403');
+                ->assertSee('403')
+                ->assertSee('Akses ditolak');
         });
 
         // Citizen cannot record track (403 Forbidden)
