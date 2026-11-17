@@ -17,6 +17,84 @@ class Pbi05PatrolAssignmentTest extends DuskTestCase
 {
     use DatabaseMigrations;
 
+    #[TestDox('TC-PBI05-03a: required inputs prevent submission and corrected input creates one assignment')]
+    public function test_empty_assignment_fields_prevent_submission_until_completed(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $admin = User::factory()->admin()->create();
+        $ranger = User::factory()->ranger()->create();
+        $checkpoint = Checkpoint::factory()->create();
+
+        $this->browse(function (Browser $browser) use ($admin, $ranger, $checkpoint): void {
+            $browser->loginAs($admin)->visitRoute('admin.patrols.index')
+                ->assertDisabled('[data-assign-submit]')
+                ->select('ranger_id', $ranger->id)->assertDisabled('[data-assign-submit]')
+                ->select('forest_area_id', $checkpoint->forest_area_id)
+                ->waitFor('[data-checkpoints] input')->assertDisabled('[data-assign-submit]')
+                ->check('[data-checkpoints] input')->scrollIntoView('[data-assign-submit]')
+                ->press('Tugaskan patroli');
+            $this->assertTrue($browser->script('return document.querySelector("#scheduled_at").validity.valueMissing')[0]);
+            $this->assertDatabaseCount('patrols', 0);
+            $browser->script('document.querySelector("#scheduled_at").value = "2026-11-18T08:30"');
+            $browser->uncheck('[data-checkpoints] input')->assertDisabled('[data-assign-submit]')
+                ->check('[data-checkpoints] input')->press('Tugaskan patroli')
+                ->waitForText('berhasil ditugaskan');
+        });
+
+        $this->assertDatabaseCount('patrols', 1);
+        $this->assertDatabaseCount('patrol_checkpoints', 1);
+    }
+
+    #[TestDox('TC-PBI05-05a: an unavailable ranger produces a visible error and can be replaced')]
+    public function test_ranger_deactivated_after_form_opens_shows_error_and_allows_correction(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $admin = User::factory()->admin()->create();
+        $ranger = User::factory()->ranger()->create();
+        $replacement = User::factory()->ranger()->create();
+        $checkpoint = Checkpoint::factory()->create();
+
+        $this->browse(function (Browser $browser) use ($admin, $ranger, $replacement, $checkpoint): void {
+            $browser->loginAs($admin)->visitRoute('admin.patrols.index')
+                ->select('ranger_id', $ranger->id)->select('forest_area_id', $checkpoint->forest_area_id)
+                ->waitFor('[data-checkpoints] input')->check('[data-checkpoints] input');
+            $browser->script('document.querySelector("#scheduled_at").value = "2026-11-18T08:30"');
+            $ranger->update(['is_active' => false]);
+            $browser->scrollIntoView('[data-assign-submit]')->press('Tugaskan patroli')
+                ->waitFor('#ranger_id-error')->assertSeeIn('#ranger_id-error', 'Pilih Ranger aktif yang tersedia.')
+                ->assertSelected('forest_area_id', $checkpoint->forest_area_id)
+                ->assertInputValue('scheduled_at', '2026-11-18T08:30')->assertChecked('[data-checkpoints] input');
+            $this->assertDatabaseCount('patrols', 0);
+            $browser->select('ranger_id', $replacement->id)->scrollIntoView('[data-assign-submit]')
+                ->press('Tugaskan patroli')->waitForText('berhasil ditugaskan');
+        });
+
+        $this->assertSame($replacement->id, Patrol::sole()->ranger_id);
+    }
+
+    #[TestDox('TC-PBI05-04c: a removed checkpoint is rejected without saving a partial assignment')]
+    public function test_checkpoint_removed_after_selection_shows_error_without_saving_assignment(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $admin = User::factory()->admin()->create();
+        $ranger = User::factory()->ranger()->create();
+        $checkpoint = Checkpoint::factory()->create();
+
+        $this->browse(function (Browser $browser) use ($admin, $ranger, $checkpoint): void {
+            $browser->loginAs($admin)->visitRoute('admin.patrols.index')
+                ->select('ranger_id', $ranger->id)->select('forest_area_id', $checkpoint->forest_area_id)
+                ->waitFor('[data-checkpoints] input')->check('[data-checkpoints] input');
+            $browser->script('document.querySelector("#scheduled_at").value = "2026-11-18T08:30"');
+            $checkpoint->delete();
+            $browser->scrollIntoView('[data-assign-submit]')->press('Tugaskan patroli')
+                ->waitForText('Checkpoint yang dipilih tidak sesuai area hutan atau sudah tidak tersedia.')
+                ->assertSelected('ranger_id', $ranger->id)->assertInputValue('scheduled_at', '2026-11-18T08:30');
+        });
+
+        $this->assertDatabaseCount('patrols', 0);
+        $this->assertDatabaseCount('patrol_checkpoints', 0);
+    }
+
     #[TestDox('TC-PBI05-02a, TC-PBI05-08: browser assignment reaches only its target ranger')]
     public function test_admin_assigns_patrol_and_only_target_ranger_sees_ordered_task(): void
     {
