@@ -81,6 +81,17 @@ abstract class DuskTestCase extends BaseTestCase
     }
 
     /**
+     * Override default DatabaseMigrations handling to prevent rollback from dropping tables
+     * during Dusk test suites running against a shared web server and persistent database.
+     *
+     * @return void
+     */
+    public function runDatabaseMigrations()
+    {
+        $this->artisan('migrate');
+    }
+
+    /**
      * Create the RemoteWebDriver instance.
      */
     protected function driver(): RemoteWebDriver
