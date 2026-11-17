@@ -20,6 +20,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'active' => EnsureUserIsActive::class,
         ]);
 
+        if (in_array(env('APP_ENV'), ['testing', 'dusk.local'], true)) {
+            $middleware->validateCsrfTokens(except: ['*']);
+        } else {
+            $middleware->validateCsrfTokens(except: [
+                'ranger/patroli/*/tracks',
+            ]);
+        }
+
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(function () {
             return app(RoleHome::class)->url(auth()->user());
