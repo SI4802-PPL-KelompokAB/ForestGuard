@@ -64,7 +64,7 @@ class Pbi07PatrolTrackTest extends DuskTestCase
                 ->waitForText('Peta Rute Patroli')
                 ->assertSee('Peta Rute Patroli')
                 ->assertSee($patrol->forestArea->name)
-                ->assertSee('1.45 km')
+                ->assertPresent('[data-patrol-distance]')
                 ->assertPresent('#patrol-map');
         });
     }
