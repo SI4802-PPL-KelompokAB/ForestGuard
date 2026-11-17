@@ -7,12 +7,32 @@ use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Http;
 use Laravel\Dusk\Browser;
 use Laravel\Dusk\TestCase as BaseTestCase;
 use PHPUnit\Framework\Attributes\BeforeClass;
 
 abstract class DuskTestCase extends BaseTestCase
 {
+    /**
+     * Leave script-driven pages before database migration callbacks run.
+     * The health request drains earlier requests on the single-worker test server.
+     */
+    protected function tearDown(): void
+    {
+        try {
+            foreach (static::$browsers as $browser) {
+                $browser->blank();
+            }
+
+            if (count(static::$browsers) > 0) {
+                Http::timeout(15)->get($this->baseUrl().'/up')->throw();
+            }
+        } finally {
+            parent::tearDown();
+        }
+    }
+
     /**
      * Prepare for Dusk test execution.
      */
