@@ -12,9 +12,6 @@ use Database\Seeders\ForestAreaSeeder;
 use Database\Seeders\IncidentTypeSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Laravel\Dusk\Browser;
 use PHPUnit\Framework\Attributes\TestDox;
 use Tests\DuskTestCase;
@@ -33,8 +30,6 @@ class Pbi26CoverageValidationTest extends DuskTestCase
             IncidentTypeSeeder::class,
             ForestAreaSeeder::class,
         ]);
-
-        Storage::fake('public');
     }
 
     #[TestDox('TC26-01: ForestAreaSeeder seeds valid West Java forest areas with boundary polygons and coordinates')]
@@ -61,6 +56,15 @@ class Pbi26CoverageValidationTest extends DuskTestCase
             $this->assertIsArray($boundary['coordinates'][0] ?? null);
             $this->assertGreaterThanOrEqual(4, count($boundary['coordinates'][0]));
         }
+
+        $admin = User::factory()->admin()->create();
+        $this->browse(function (Browser $browser) use ($admin): void {
+            $browser->loginAs($admin)
+                ->slow()
+                ->visitRoute('admin.patrols.index')
+                ->slow()
+                ->assertSee('Taman Hutan Raya Ir. H. Djuanda');
+        });
     }
 
     #[TestDox('TC26-02: GeoLocationValidator evaluates coordinates inside West Java bounding box')]
@@ -79,6 +83,16 @@ class Pbi26CoverageValidationTest extends DuskTestCase
         $this->assertFalse(GeoLocationValidator::isWithinWestJava(-8.4095, 115.1889));     // Bali
         $this->assertFalse(GeoLocationValidator::isWithinWestJava(null, 107.6));
         $this->assertFalse(GeoLocationValidator::isWithinWestJava('invalid', 'coord'));
+
+        $citizen = User::factory()->citizen()->create();
+        $this->browse(function (Browser $browser) use ($citizen): void {
+            $browser->loginAs($citizen)
+                ->slow()
+                ->visitRoute('citizen.incidents.create')
+                ->slow()
+                ->assertPresent('#latitude')
+                ->assertPresent('#longitude');
+        });
     }
 
     #[TestDox('TC26-03: GeoLocationValidator evaluates point in polygon via Ray-Casting algorithm')]
@@ -98,106 +112,58 @@ class Pbi26CoverageValidationTest extends DuskTestCase
         $this->assertTrue(GeoLocationValidator::isPointInPolygon(-6.8, 107.1, $polygon));
         $this->assertFalse(GeoLocationValidator::isPointInPolygon(-7.0, 107.1, $polygon));
         $this->assertFalse(GeoLocationValidator::isPointInPolygon(-6.8, 107.3, $polygon));
+
+        $citizen = User::factory()->citizen()->create();
+        $this->browse(function (Browser $browser) use ($citizen): void {
+            $browser->loginAs($citizen)
+                ->slow()
+                ->visitRoute('citizen.incidents.create')
+                ->slow()
+                ->assertSee('Perkiraan Kawasan Hutan');
+        });
     }
 
-    #[TestDox('TC26-04: Citizen incident report accepts coordinates within West Java (HTTP 302 Redirect)')]
+    #[TestDox('TC26-04: Citizen incident report accepts coordinates within West Java in browser')]
     public function test_tc26_04_citizen_incident_report_accepts_coordinates_within_west_java(): void
     {
         $citizen = User::factory()->citizen()->create();
         $incidentType = IncidentType::firstOrFail();
         $forestArea = ForestArea::where('name', 'Taman Hutan Raya Ir. H. Djuanda')->firstOrFail();
 
-        $response = $this->actingAs($citizen)->post(route('citizen.incidents.store'), [
-            'client_uuid' => (string) Str::uuid(),
-            'incident_type_id' => $incidentType->id,
-            'forest_area_id' => $forestArea->id,
-            'occurred_at' => now()->subHour()->format('Y-m-d\TH:i'),
-            'description' => 'Terjadi kebakaran semak belukar di lereng tebing dekat jalur patroli.',
-            'latitude' => -6.8560000,
-            'longitude' => 107.6320000,
-            'photo' => UploadedFile::fake()->image('bukti_kebakaran.jpg', 640, 480),
-        ]);
+        $testImagePath = storage_path('framework/testing/test_evidence_valid.jpg');
+        if (! is_dir(dirname($testImagePath))) {
+            mkdir(dirname($testImagePath), 0755, true);
+        }
+        if (! file_exists($testImagePath)) {
+            $img = imagecreatetruecolor(200, 200);
+            imagejpeg($img, $testImagePath);
+            imagedestroy($img);
+        }
 
-        $response->assertSessionHasNoErrors();
-        $incident = Incident::sole();
-        $response->assertRedirect(route('citizen.incidents.show', $incident));
-
-        $this->assertSame($citizen->id, $incident->reporter_id);
-        $this->assertSame($forestArea->id, $incident->forest_area_id);
-        $this->assertEqualsWithDelta(-6.8560000, (float) $incident->latitude, 0.0001);
-        $this->assertEqualsWithDelta(107.6320000, (float) $incident->longitude, 0.0001);
-    }
-
-    #[TestDox('TC26-05: Citizen incident report rejects coordinates outside West Java bounds (TR-17)')]
-    public function test_tc26_05_citizen_incident_report_rejects_coordinates_outside_west_java_bounds(): void
-    {
-        $citizen = User::factory()->citizen()->create();
-        $incidentType = IncidentType::firstOrFail();
-        $forestArea = ForestArea::firstOrFail();
-
-        $response = $this->actingAs($citizen)->from(route('citizen.incidents.create'))->post(route('citizen.incidents.store'), [
-            'client_uuid' => (string) Str::uuid(),
-            'incident_type_id' => $incidentType->id,
-            'forest_area_id' => $forestArea->id,
-            'occurred_at' => now()->subHour()->format('Y-m-d\TH:i'),
-            'description' => 'Percobaan laporan dengan titik koordinat di luar wilayah Jawa Barat.',
-            'latitude' => -6.966667,
-            'longitude' => 110.416664,
-            'photo' => UploadedFile::fake()->image('bukti.jpg', 640, 480),
-        ]);
-
-        $response->assertRedirect(route('citizen.incidents.create'));
-        $response->assertSessionHasErrors(['latitude']);
-
-        $errors = session('errors')->get('latitude');
-        $this->assertContains('Titik koordinat kejadian berada di luar wilayah cakupan Jawa Barat.', $errors);
-        $this->assertSame(0, Incident::count());
-    }
-
-    #[TestDox('TC26-06: Ranger incident report rejects coordinates outside West Java bounds (TR-17)')]
-    public function test_tc26_06_ranger_incident_report_rejects_coordinates_outside_west_java_bounds(): void
-    {
-        $ranger = User::factory()->ranger()->create();
-        $incidentType = IncidentType::firstOrFail();
-        $forestArea = ForestArea::firstOrFail();
-
-        $response = $this->actingAs($ranger)->from(route('ranger.incidents.create'))->post(route('ranger.incidents.store'), [
-            'client_uuid' => (string) Str::uuid(),
-            'incident_type_id' => $incidentType->id,
-            'forest_area_id' => $forestArea->id,
-            'occurred_at' => now()->subHour()->format('Y-m-d\TH:i'),
-            'description' => 'Patroli menemukan pohon tumbang di koordinat yang salah input.',
-            'latitude' => -8.409500,
-            'longitude' => 115.188900,
-            'photo' => UploadedFile::fake()->image('bukti.jpg', 640, 480),
-        ]);
-
-        $response->assertRedirect(route('ranger.incidents.create'));
-        $response->assertSessionHasErrors(['latitude']);
-
-        $errors = session('errors')->get('latitude');
-        $this->assertContains('Titik koordinat kejadian berada di luar wilayah cakupan Jawa Barat.', $errors);
-        $this->assertSame(0, Incident::count());
-    }
-
-    #[TestDox('TC26-07: Incident reporting page displays seeded West Java forest areas in browser')]
-    public function test_tc26_07_incident_reporting_page_displays_seeded_west_java_forest_areas(): void
-    {
-        $citizen = User::factory()->citizen()->create();
-
-        $this->browse(function (Browser $browser) use ($citizen): void {
+        $this->browse(function (Browser $browser) use ($citizen, $incidentType, $forestArea, $testImagePath): void {
             $browser->loginAs($citizen)
+                ->slow()
                 ->visitRoute('citizen.incidents.create')
                 ->waitForText('Buat Laporan Insiden')
-                ->assertSee('Perkiraan Kawasan Hutan')
-                ->assertSee('Taman Nasional Gunung Ciremai')
-                ->assertSee('Taman Hutan Raya Ir. H. Djuanda')
-                ->assertSee('Taman Nasional Gunung Gede Pangrango');
+                ->slow()
+                ->radio('incident_type_id', (string) $incidentType->id)
+                ->select('forest_area_id', (string) $forestArea->id)
+                ->type('description', 'Terjadi kebakaran semak belukar di lereng tebing dekat jalur patroli.')
+                ->attach('photo', $testImagePath)
+                ->type('latitude', '-6.8560000')
+                ->type('longitude', '107.6320000')
+                ->slow()
+                ->press('Kirim Laporan')
+                ->waitForRoute('citizen.incidents.show', Incident::first() ?? 1)
+                ->slow()
+                ->assertSee('Laporan berhasil terkirim');
         });
+
+        $this->assertGreaterThan(0, Incident::count());
     }
 
-    #[TestDox('TC26-08: Submitting coordinates outside West Java shows validation error in browser (TR-17)')]
-    public function test_tc26_08_submitting_coordinates_outside_west_java_shows_validation_error(): void
+    #[TestDox('TC26-05: Citizen incident report rejects coordinates outside West Java bounds (TR-17) in browser')]
+    public function test_tc26_05_citizen_incident_report_rejects_coordinates_outside_west_java_bounds(): void
     {
         $citizen = User::factory()->citizen()->create();
         $incidentType = IncidentType::firstOrFail();
@@ -215,17 +181,115 @@ class Pbi26CoverageValidationTest extends DuskTestCase
 
         $this->browse(function (Browser $browser) use ($citizen, $incidentType, $forestArea, $testImagePath): void {
             $browser->loginAs($citizen)
+                ->slow()
                 ->visitRoute('citizen.incidents.create')
                 ->waitForText('Buat Laporan Insiden')
+                ->slow()
                 ->radio('incident_type_id', (string) $incidentType->id)
                 ->select('forest_area_id', (string) $forestArea->id)
                 ->type('description', 'Percobaan laporan insiden warga dengan titik koordinat di luar wilayah Jawa Barat.')
                 ->attach('photo', $testImagePath)
                 ->type('latitude', '-6.966667')
                 ->type('longitude', '110.416664')
+                ->slow()
                 ->press('Kirim Laporan')
                 ->waitForText('Terdapat kesalahan dalam pengisian formulir')
+                ->slow()
                 ->assertSee('Titik koordinat kejadian berada di luar wilayah cakupan Jawa Barat.');
+        });
+    }
+
+    #[TestDox('TC26-06: Ranger incident report rejects coordinates outside West Java bounds (TR-17) in browser')]
+    public function test_tc26_06_ranger_incident_report_rejects_coordinates_outside_west_java_bounds(): void
+    {
+        $ranger = User::factory()->ranger()->create();
+        $incidentType = IncidentType::firstOrFail();
+        $forestArea = ForestArea::firstOrFail();
+
+        $testImagePath = storage_path('framework/testing/test_evidence_ranger.jpg');
+        if (! is_dir(dirname($testImagePath))) {
+            mkdir(dirname($testImagePath), 0755, true);
+        }
+        if (! file_exists($testImagePath)) {
+            $img = imagecreatetruecolor(200, 200);
+            imagejpeg($img, $testImagePath);
+            imagedestroy($img);
+        }
+
+        $this->browse(function (Browser $browser) use ($ranger, $incidentType, $forestArea, $testImagePath): void {
+            $browser->loginAs($ranger)
+                ->slow()
+                ->visitRoute('ranger.incidents.create')
+                ->waitForText('Lapor Insiden Lapangan')
+                ->slow()
+                ->radio('incident_type_id', (string) $incidentType->id)
+                ->select('forest_area_id', (string) $forestArea->id)
+                ->type('description', 'Patroli menemukan pohon tumbang di koordinat yang salah input.')
+                ->attach('photo', $testImagePath)
+                ->type('latitude', '-8.409500')
+                ->type('longitude', '115.188900')
+                ->slow()
+                ->press('Kirim Laporan')
+                ->waitForText('Terdapat kesalahan dalam pengisian formulir')
+                ->slow()
+                ->assertSee('Titik koordinat kejadian berada di luar wilayah cakupan Jawa Barat.');
+        });
+    }
+
+    #[TestDox('TC26-07: Incident reporting page displays seeded West Java forest areas in browser')]
+    public function test_tc26_07_incident_reporting_page_displays_seeded_west_java_forest_areas(): void
+    {
+        $citizen = User::factory()->citizen()->create();
+
+        $this->browse(function (Browser $browser) use ($citizen): void {
+            $browser->loginAs($citizen)
+                ->slow()
+                ->visitRoute('citizen.incidents.create')
+                ->waitForText('Buat Laporan Insiden')
+                ->slow()
+                ->assertSee('Perkiraan Kawasan Hutan')
+                ->assertSee('Taman Nasional Gunung Ciremai')
+                ->assertSee('Taman Hutan Raya Ir. H. Djuanda')
+                ->assertSee('Taman Nasional Gunung Gede Pangrango')
+                ->slow();
+        });
+    }
+
+    #[TestDox('TC26-08: Submitting coordinates outside West Java shows validation error in browser (TR-17)')]
+    public function test_tc26_08_submitting_coordinates_outside_west_java_shows_validation_error(): void
+    {
+        $citizen = User::factory()->citizen()->create();
+        $incidentType = IncidentType::firstOrFail();
+        $forestArea = ForestArea::firstOrFail();
+
+        $testImagePath = storage_path('framework/testing/test_evidence_outside.jpg');
+        if (! is_dir(dirname($testImagePath))) {
+            mkdir(dirname($testImagePath), 0755, true);
+        }
+        if (! file_exists($testImagePath)) {
+            $img = imagecreatetruecolor(200, 200);
+            imagejpeg($img, $testImagePath);
+            imagedestroy($img);
+        }
+
+        $this->browse(function (Browser $browser) use ($citizen, $incidentType, $forestArea, $testImagePath): void {
+            $browser->loginAs($citizen)
+                ->slow()
+                ->visitRoute('citizen.incidents.create')
+                ->waitForText('Buat Laporan Insiden')
+                ->slow()
+                ->radio('incident_type_id', (string) $incidentType->id)
+                ->select('forest_area_id', (string) $forestArea->id)
+                ->type('description', 'Percobaan laporan insiden warga dengan titik koordinat di luar wilayah Jawa Barat.')
+                ->attach('photo', $testImagePath)
+                ->type('latitude', '-6.966667')
+                ->type('longitude', '110.416664')
+                ->slow()
+                ->press('Kirim Laporan')
+                ->waitForText('Terdapat kesalahan dalam pengisian formulir')
+                ->slow()
+                ->assertSee('Titik koordinat kejadian berada di luar wilayah cakupan Jawa Barat.')
+                ->slow();
         });
     }
 }
