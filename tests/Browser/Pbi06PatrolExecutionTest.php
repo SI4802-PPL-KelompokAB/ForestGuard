@@ -18,6 +18,44 @@ class Pbi06PatrolExecutionTest extends DuskTestCase
 {
     use DatabaseMigrations;
 
+    #[TestDox('TC-PBI06-04a: a second active patrol rejects start from an already open page')]
+    public function test_start_from_stale_page_rejects_another_active_patrol_and_recovers(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $patrol = Patrol::factory()->create();
+
+        $this->browse(function (Browser $browser) use ($patrol): void {
+            $browser->loginAs($patrol->ranger)->visitRoute('ranger.patrols.show', $patrol);
+            $active = Patrol::factory()->inProgress()->for($patrol->ranger, 'ranger')->create();
+            $browser->scrollIntoView('[data-patrol-mutation] button')->press('Mulai patroli')
+                ->waitForText('Selesaikan patroli yang sedang berlangsung sebelum memulai tugas lain.')
+                ->assertSeeIn('strong', 'Ditugaskan')->assertVisible('[data-state-refresh]');
+            $this->assertNull($patrol->fresh()->started_at);
+            $this->assertSame(PatrolStatus::InProgress, $active->fresh()->status);
+            $active->update(['status' => PatrolStatus::Completed, 'ended_at' => now('UTC')]);
+            $browser->press('Mulai patroli')->waitFor('[data-finish-open]')->assertSeeIn('strong', 'Berlangsung');
+        });
+
+        $this->assertSame(PatrolStatus::InProgress, $patrol->fresh()->status);
+    }
+
+    #[TestDox('TC-PBI06-06b: stale finish confirmation preserves the completion saved elsewhere')]
+    public function test_finish_from_stale_page_preserves_completion_saved_elsewhere(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $patrol = Patrol::factory()->inProgress()->create();
+
+        $this->browse(function (Browser $browser) use ($patrol): void {
+            $browser->loginAs($patrol->ranger)->visitRoute('ranger.patrols.show', $patrol)
+                ->scrollIntoView('[data-finish-open]')->press('Akhiri patroli')->waitFor('dialog[open]');
+            $patrol->update(['status' => PatrolStatus::Completed, 'ended_at' => now('UTC')->subSeconds(10)]);
+            $ended = $patrol->fresh()->getRawOriginal('ended_at');
+            $browser->press('Ya, akhiri patroli')->waitUntilMissing('[data-finish-open]')
+                ->assertSeeIn('strong', 'Selesai')->assertMissing('[data-patrol-mutation]');
+            $this->assertSame($ended, $patrol->fresh()->getRawOriginal('ended_at'));
+        });
+    }
+
     #[TestDox('TC-PBI06-02a, TC-PBI06-03, TC-PBI06-05a, TC-PBI06-05b, TC-PBI06-05c, TC-PBI06-11a: browser lifecycle and confirmation')]
     public function test_ranger_starts_reloads_and_confirms_finish_with_unvisited_checkpoints(): void
     {
