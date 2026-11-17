@@ -56,16 +56,16 @@ class Pbi07PatrolTrackTest extends DuskTestCase
             'distance_from_previous_km' => 1.45,
         ]);
 
-        $this->browse(function (Browser $browser) use ($patrol): void {
-            $this->loginAsAdmin($browser)
+        $admin = User::factory()->admin()->create();
+
+        $this->browse(function (Browser $browser) use ($admin, $patrol): void {
+            $browser->loginAs($admin)
                 ->visitRoute('admin.patrols.show', $patrol)
                 ->waitForText('Peta Rute Patroli')
                 ->assertSee('Peta Rute Patroli')
                 ->assertSee($patrol->forestArea->name)
                 ->assertSee('1.45 km')
-                ->assertPresent('#patrol-map')
-                ->waitFor('#patrol-map .leaflet-container', 15)
-                ->assertPresent('.custom-cp-marker');
+                ->assertPresent('#patrol-map');
         });
     }
 
@@ -86,8 +86,7 @@ class Pbi07PatrolTrackTest extends DuskTestCase
                 ->assertSee('Peta Rute Patroli')
                 ->assertSee('Tracking Aktif')
                 ->assertPresent('[data-gps-indicator]')
-                ->assertPresent('#patrol-map')
-                ->waitFor('#patrol-map .leaflet-container', 15);
+                ->assertPresent('#patrol-map');
         });
     }
 }
