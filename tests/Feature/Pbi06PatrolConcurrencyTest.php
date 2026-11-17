@@ -8,6 +8,7 @@ use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
@@ -15,6 +16,7 @@ class Pbi06PatrolConcurrencyTest extends TestCase
 {
     use DatabaseMigrations;
 
+    #[TestDox('TC-PBI06-04b: separate MySQL processes allow exactly one concurrent start')]
     public function test_two_concurrent_starts_on_separate_connections_allow_exactly_one_active_patrol(): void
     {
         if (! in_array(DB::getDriverName(), ['mysql', 'mariadb'], true)) {
