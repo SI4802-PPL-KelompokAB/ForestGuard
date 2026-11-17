@@ -3,6 +3,7 @@
 namespace Tests\Browser;
 
 use App\Models\Patrol;
+use App\Models\User;
 use Database\Seeders\CaseStatusSeeder;
 use Database\Seeders\CheckpointSeeder;
 use Database\Seeders\ForestAreaSeeder;
@@ -241,14 +242,13 @@ class Pbi25LocationPickerTest extends DuskTestCase
 
     public function test_ranger_observation_form_shows_empty_location_picker_and_selects_map_point_on_mobile(): void
     {
+        $ranger = User::where('email', 'ranger1@forestguard.test')->first()
+            ?? User::factory()->ranger()->create(['email' => 'ranger1@forestguard.test']);
+
         $patrol = Patrol::query()
             ->whereHas('ranger', fn ($query) => $query->where('email', 'ranger1@forestguard.test'))
             ->where('status', 'Berlangsung')
-            ->first();
-
-        if ($patrol === null) {
-            $this->markTestSkipped('Tidak ada patroli Berlangsung untuk ranger1@forestguard.test.');
-        }
+            ->first() ?? Patrol::factory()->inProgress()->for($ranger, 'ranger')->create();
 
         $this->browse(function (Browser $browser) use ($patrol): void {
             $browser->loginAsRanger()

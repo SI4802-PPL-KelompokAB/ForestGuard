@@ -33,7 +33,7 @@ class Pbi08FieldRecordingTest extends DuskTestCase
             $browser->scrollIntoView('[data-observation-details] summary')->click('[data-observation-details] summary')
                 ->type('description', 'Ada jejak satwa di jalur patroli')
                 ->select('category', 'Temuan satwa')
-                ->scrollIntoView('[data-observation-submit]')->click('[data-observation-submit]')
+                ->scrollIntoView('[data-observation-submit]')->press('Simpan observasi')
                 ->waitForText('Observasi lapangan tersimpan.')
                 ->assertSeeIn('[data-observations-list]', 'Ada jejak satwa di jalur patroli')
                 ->assertSeeIn('[data-observations-list]', 'Temuan satwa')
@@ -77,14 +77,14 @@ window.fetch = (url, options = {}) => options.method === 'POST'
     ? Promise.resolve(new Response(JSON.stringify({message: 'Failed'}), {status: 500, headers: {'Content-Type': 'application/json'}}))
     : window.originalFieldFetch(url, options);
 JS);
-            $browser->scrollIntoView('[data-observation-submit]')->click('[data-observation-submit]')
+            $browser->scrollIntoView('[data-observation-submit]')->press('Simpan observasi')
                 ->waitForText('Server gagal mengonfirmasi penyimpanan.')
                 ->assertInputValue('description', 'Catatan tetap ada ketika server gagal')
                 ->assertSeeIn('[data-observation-location]', 'Lokasi GPS: -7.1234567')
                 ->assertMissing('[data-observation-id]');
             $this->assertDatabaseCount('observations', 0);
             $browser->script('window.fetch = window.originalFieldFetch;');
-            $browser->scrollIntoView('[data-observation-submit]')->click('[data-observation-submit]')
+            $browser->scrollIntoView('[data-observation-submit]')->press('Simpan observasi')
                 ->waitForText('Observasi lapangan tersimpan.')->assertPresent('[data-observation-id]');
         });
         $this->assertSame(1, $patrol->observations()->count());
