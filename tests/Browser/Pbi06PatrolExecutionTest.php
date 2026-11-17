@@ -101,7 +101,7 @@ JS);
             $started = $patrol->fresh()->getRawOriginal('started_at');
             $this->assertSame(PatrolStatus::InProgress, $patrol->fresh()->status);
             $browser->press('Mulai patroli')->waitFor('[data-finish-open]')->assertSeeIn('strong', 'Berlangsung');
-            $this->assertSame(['GET', 'POST', 'POST', 'GET'], $browser->script('return JSON.parse(sessionStorage.getItem("patrolRequests"))')[0]);
+            $this->assertSame(['GET', 'POST', 'GET'], $browser->script('return JSON.parse(sessionStorage.getItem("patrolRequests"))')[0]);
             $this->assertSame($started, $patrol->fresh()->getRawOriginal('started_at'));
             $browser->script('window.dispatchEvent(new Event("offline"))');
             $browser->assertDisabled('[data-finish-open]')->assertSee('Perubahan belum dapat dikonfirmasi.');
