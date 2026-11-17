@@ -13,10 +13,15 @@ use Laravel\Dusk\Browser;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 use Tests\DuskTestCase;
+use Illuminate\Support\Facades\Artisan;
 
 class Pbi06PatrolExecutionTest extends DuskTestCase
 {
-    use DatabaseMigrations;
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Artisan::call('migrate:fresh');
+    }
 
     #[TestDox('TC-PBI06-04a: a second active patrol rejects start from an already open page')]
     public function test_start_from_stale_page_rejects_another_active_patrol_and_recovers(): void
