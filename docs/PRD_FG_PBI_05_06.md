@@ -396,3 +396,99 @@ Bagian ini tidak menghambat implementasi dengan default di atas, tetapi harus mu
 ## 14. Prompt singkat untuk agent implementasi
 
 > Baca PRD ini dan panduan repository, lalu implementasikan PBI-05 dan PBI-06 ForestGuard menggunakan struktur proyek yang tersedia. Mulai dengan audit dependency dan mapping ERD/status. Terapkan penugasan Admin dengan minimal satu checkpoint valid, lifecycle Ditugaskan → Berlangsung → Selesai, isolasi tugas Ranger, transaksi atomik, dan proteksi concurrent start agar satu Ranger hanya memiliki satu patroli berjalan. Ikuti acceptance criteria serta pengujian Dusk. Jangan memperluas pekerjaan ke GPS, pencatatan kunjungan, notifikasi lengkap, offline, atau riwayat/peta lengkap; integrasikan hanya jika modulnya sudah tersedia. Laporkan perubahan, hasil test aktual, keputusan turunan, dan dependency yang masih tertunda.
+
+## 15. Keterlacakan skenario Jira dan test otomatis
+
+Pemetaan ini mempertahankan **21 ID skenario PBI-05** dan **25 ID skenario PBI-06** dari deskripsi Jira yang disusun bersama PRD. Satu test dapat membuktikan beberapa skenario yang terjadi dalam alur yang sama; variasi input negatif menggunakan data provider. ID dicantumkan melalui atribut PHPUnit `TestDox`, sehingga dapat dicocokkan dengan hasil `--testdox`.
+
+Alias file pada tabel:
+
+- **F05:** `tests/Feature/Pbi05PatrolAssignmentTest.php`.
+- **B05:** `tests/Browser/Pbi05PatrolAssignmentTest.php`.
+- **F06:** `tests/Feature/Pbi06PatrolExecutionTest.php`.
+- **C06:** `tests/Feature/Pbi06PatrolConcurrencyTest.php`.
+- **B06:** `tests/Browser/Pbi06PatrolExecutionTest.php`.
+
+Nama di kolom test adalah metode dengan awalan `test_`. Skenario jaringan menggunakan fault injection terkontrol pada `fetch` browser; database dan alur HTTP aplikasi tetap nyata. Pengujian ini tidak menyatakan fitur penyimpanan offline atau kanal notifikasi PBI-17 sudah selesai.
+
+### 15.1 PBI-05
+
+| ID skenario Jira | Perilaku yang dibuktikan | File dan metode test |
+| --- | --- | --- |
+| TC-PBI05-01a | Pilihan Ranger/area/checkpoint valid dan pagination stabil. | F05: `test_admin_sees_only_valid_options_and_active_checkpoints_for_selected_area`, `test_admin_assignment_list_paginates_without_losing_or_repeating_patrols`. |
+| TC-PBI05-01b | Pergantian area menghapus pilihan lama; respons lama tidak menimpa area terbaru. | B05: `test_changing_area_discards_selection_and_server_validation_keeps_valid_input`, `test_loading_and_late_checkpoint_responses_keep_the_latest_area_selection`. |
+| TC-PBI05-01c | Tanpa Ranger, area, atau checkpoint, empty state tampil dan submit tidak aktif. | B05: `test_missing_master_data_shows_an_empty_state_and_disables_assignment` (tiga dataset). |
+| TC-PBI05-02a | Penugasan atomik, status awal, jadwal UTC, UUID dan urutan checkpoint benar. | F05: `test_assignment_is_atomic_ordered_utc_and_visible_only_to_its_ranger`; B05: `test_admin_assigns_patrol_and_only_target_ranger_sees_ordered_task`. |
+| TC-PBI05-02b | Jadwal lampau/bertumpuk diterima dengan kode dan UUID unik. | F05: `test_multiple_assignments_for_the_same_ranger_allow_past_and_overlapping_schedules`. |
+| TC-PBI05-02c | Pembuat, kode, status dan waktu aktual tidak dapat dipalsukan klien. | F05: `test_assignment_is_atomic_ordered_utc_and_visible_only_to_its_ranger`. |
+| TC-PBI05-03a | Semua field wajib dan array checkpoint kosong ditolak; input web valid dipertahankan. | F05: `test_required_fields_are_rejected_without_persistence`, `test_each_required_input_is_rejected_without_persisting_data`; B05: `test_changing_area_discards_selection_and_server_validation_keeps_valid_input`. |
+| TC-PBI05-03b | Tanggal mustahil dan format jadwal tidak sah ditolak. | F05: `test_invalid_or_changed_master_is_rejected` (dataset `invalid_date`, `invalid_date_format`). |
+| TC-PBI05-04a | Checkpoint duplikat ditolak. | F05: `test_invalid_or_changed_master_is_rejected` (dataset `duplicate`). |
+| TC-PBI05-04b | Checkpoint dari area lain ditolak. | F05: `test_invalid_or_changed_master_is_rejected` (dataset `wrong_area`). |
+| TC-PBI05-04c | Checkpoint terhapus/tidak ada ditolak. | F05: `test_invalid_or_changed_master_is_rejected` (dataset `deleted_checkpoint`, `missing_checkpoint`). |
+| TC-PBI05-05a | Ranger nonaktif, terhapus, tidak ada, Citizen, dan Admin ditolak sebagai petugas. | F05: `test_invalid_or_changed_master_is_rejected` (dataset akun terkait). |
+| TC-PBI05-05b | Master yang berubah setelah form dibuka diperiksa ulang di transaksi. | F05: `test_master_changes_after_opening_the_form_are_rejected`, `test_transaction_revalidates_master_after_request_validation`. |
+| TC-PBI05-06 | Insert checkpoint kedua gagal: rollback penuh, tanpa event, error HTTP/web dan input lama benar. | F05: `test_checkpoint_query_failure_is_atomic_and_preserves_web_input`, `test_failed_checkpoint_insert_rolls_back_and_never_publishes_assignment`. |
+| TC-PBI05-07a | Guest ditolak sesuai kontrak autentikasi. | F05: `test_admin_endpoints_reject_other_roles_and_guests`. |
+| TC-PBI05-07b | Ranger/Citizen tidak dapat memakai endpoint Admin. | F05: `test_admin_endpoints_reject_other_roles_and_guests`. |
+| TC-PBI05-08 | Tugas hanya diserahkan ke Ranger tujuan dengan jadwal/checkpoint benar. | F05: `test_assignment_is_atomic_ordered_utc_and_visible_only_to_its_ranger`; B05: `test_admin_assigns_patrol_and_only_target_ranger_sees_ordered_task`. |
+| TC-PBI05-09a | Event baru terbit sesudah transaksi terluar commit. | F05: `test_assignment_event_is_published_only_after_the_outer_transaction_commits`. |
+| TC-PBI05-09b | Rollback transaksi luar tidak meninggalkan data/event. | F05: `test_event_waits_for_outer_commit_and_listener_failure_does_not_undo_assignment`. |
+| TC-PBI05-09c | Listener gagal sesudah commit tidak membatalkan penugasan sah. | F05: `test_event_waits_for_outer_commit_and_listener_failure_does_not_undo_assignment`. |
+| TC-PBI05-10 | Loading, kegagalan fetch/pemulihan, keyboard, submit tertunda, dan layout 360/1280 px. | B05: `test_loading_and_late_checkpoint_responses_keep_the_latest_area_selection`, `test_checkpoint_fetch_failure_clears_stale_choices_and_allows_reselection`, `test_keyboard_selection_and_pending_submission_are_usable_at_each_viewport`. |
+
+### 15.2 PBI-06
+
+| ID skenario Jira | Perilaku yang dibuktikan | File dan metode test |
+| --- | --- | --- |
+| TC-PBI06-01a | Hanya tugas pemilik yang terlihat, termasuk halaman pagination berikutnya. | F06: `test_pagination_keeps_ranger_tasks_isolated_on_every_page`; F05: `test_assignment_is_atomic_ordered_utc_and_visible_only_to_its_ranger`. |
+| TC-PBI06-01b | Akses detail/start/finish Ranger lain 404 tanpa metadata tugas. | F06: `test_guest_and_other_ranger_cannot_access_or_mutate_task`. |
+| TC-PBI06-01c | Prioritas aktif, jadwal terdekat, selesai terbaru, dan pagination stabil. | F06: `test_list_prioritizes_active_then_scheduled_assignments_then_recent_completions`, `test_pagination_keeps_ranger_tasks_isolated_on_every_page`. |
+| TC-PBI06-02a | Start mencatat waktu server dan mengubah patroli yang sama menjadi Berlangsung. | F06: `test_server_time_survives_reload_and_finish_keeps_unvisited_checkpoints`; B06: `test_ranger_starts_reloads_and_confirms_finish_with_unvisited_checkpoints`. |
+| TC-PBI06-02b | Payload start/finish tidak mengubah penugasan/pemilik atau waktu server. | F06: `test_server_time_survives_reload_and_finish_keeps_unvisited_checkpoints`, `test_finish_cannot_overwrite_assignment_fields_or_accept_client_timestamps`. |
+| TC-PBI06-03 | Reload dan login ulang mempertahankan patroli, waktu mulai dan durasi. | F06: `test_server_time_survives_reload_and_finish_keeps_unvisited_checkpoints`; B06: `test_logging_in_again_restores_the_existing_active_patrol`. |
+| TC-PBI06-04a | Tugas kedua ditolak saat ada patroli aktif; tautan menuju tugas aktif tersedia. | F06: `test_active_patrol_blocks_other_assignment_with_current_state_and_link`; B06: `test_other_assignment_links_to_current_active_patrol`. |
+| TC-PBI06-04b | Dua proses/koneksi MySQL menghasilkan tepat satu start sukses. | C06: `test_two_concurrent_starts_on_separate_connections_allow_exactly_one_active_patrol`. |
+| TC-PBI06-05a | Konfirmasi akhir menghasilkan Selesai dengan waktu/durasi benar. | F06: `test_server_time_survives_reload_and_finish_keeps_unvisited_checkpoints`; B06: `test_ranger_starts_reloads_and_confirms_finish_with_unvisited_checkpoints`. |
+| TC-PBI06-05b | Checkpoint belum lengkap tetap boleh selesai tanpa kunjungan palsu. | F06/B06: test lifecycle di atas. |
+| TC-PBI06-05c | Batal dan Escape menutup dialog tanpa mutasi. | B06: `test_ranger_starts_reloads_and_confirms_finish_with_unvisited_checkpoints`, `test_empty_state_and_keyboard_confirmation_at_each_viewport`. |
+| TC-PBI06-06a | Finish saat Ditugaskan ditolak dan kondisi terbaru ditampilkan. | F06: `test_assigned_cannot_finish_and_html_conflict_displays_current_detail`. |
+| TC-PBI06-06b | Start/finish pada Selesai ditolak tanpa menimpa waktu. | F06: `test_duplicate_start_and_finish_return_conflict_without_overwriting_timestamps`. |
+| TC-PBI06-07a | Start berulang menghasilkan konflik; waktu mulai pertama tetap. | F06: `test_duplicate_start_and_finish_return_conflict_without_overwriting_timestamps`. |
+| TC-PBI06-07b | Finish berulang menghasilkan konflik; waktu akhir pertama tetap. | F06: `test_duplicate_start_and_finish_return_conflict_without_overwriting_timestamps`. |
+| TC-PBI06-08a | Guest ditolak mengikuti kontrak web/JSON. | F06: `test_guest_and_other_ranger_cannot_access_or_mutate_task`. |
+| TC-PBI06-08b | Admin/Citizen tidak dapat membaca/memutasi melalui endpoint Ranger. | F06: `test_other_roles_cannot_read_or_mutate_ranger_patrols`. |
+| TC-PBI06-08c | Ranger nonaktif di-logout dan tidak dapat start/finish. | F06: `test_inactive_ranger_is_rejected`, `test_deactivated_ranger_cannot_finish_and_is_logged_out`. |
+| TC-PBI06-09a | Kegagalan jaringan/timeout sebelum mutasi tidak memberi sukses palsu; retry membaca status dahulu. | B06: `test_connection_failure_before_mutation_can_retry_after_reading_current_state` (network dan timeout). |
+| TC-PBI06-09b | Respons hilang setelah start dipulihkan tanpa mengirim POST start kedua. | B06: `test_lost_server_confirmation_does_not_claim_success_and_retry_reads_latest_state`. |
+| TC-PBI06-10 | Master soft-deleted tidak merusak detail atau lifecycle historis. | F06: `test_deleted_master_does_not_block_historical_detail_or_execution`. |
+| TC-PBI06-11a | Durasi akhir positif dan timestamp tetap setelah waktu berlalu; hasil hanya-baca. | F06: `test_completed_duration_and_timestamps_remain_fixed_when_time_passes`; B06: test lifecycle. |
+| TC-PBI06-11b | Clock skew tidak menghasilkan durasi negatif; waktu akhir tetap waktu server. | F06: `test_duration_is_never_negative_and_completed_duration_does_not_grow`. |
+| TC-PBI06-11c | Empty state, keyboard/dialog, layout 360/1280 px, dan pencegahan mutasi ganda saat pending. | B06: `test_empty_state_and_keyboard_confirmation_at_each_viewport`, `test_pending_confirmation_disables_controls_and_ignores_duplicate_submissions`. |
+| TC-PBI06-12 | Kegagalan query start/finish tidak meninggalkan status/waktu parsial; respons error benar. | F06: `test_failed_status_write_returns_error_without_partial_transition`, `test_failed_finish_rolls_back_and_returns_a_recoverable_error`. |
+
+### 15.3 Menjalankan bukti pengujian
+
+```shell
+php artisan test --compact --filter='Pbi05PatrolAssignmentTest|Pbi06PatrolExecutionTest|Pbi06PatrolConcurrencyTest'
+php artisan dusk --without-tty --filter='Pbi05PatrolAssignmentTest|Pbi06PatrolExecutionTest' --no-interaction
+```
+
+Untuk melihat ID Jira pada keluaran PHPUnit, jalankan file feature terkait dengan `vendor/bin/phpunit --testdox`. Konfigurasi default feature test memakai SQLite; jalankan suite yang sama dengan environment MySQL/MariaDB uji terisolasi untuk bukti konkurensi, bukan database aplikasi. Dusk memakai server aplikasi dan database uji terpisah. Jangan menafsirkan skip konkurensi pada SQLite sebagai bukti bahwa pengujian konkurensi lulus.
+
+### 15.4 Hasil verifikasi 17 November 2026
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| Feature PBI-05 pada SQLite | 34 test lulus. |
+| Feature PBI-06 pada SQLite | 18 test lulus. Gabungan kedua PBI: 52 test, 371 assertion, tanpa gagal/skip. |
+| Feature kedua PBI dan konkurensi pada MySQL | 53 test, 377 assertion; seluruhnya lulus, tanpa gagal/skip. Termasuk dua proses/koneksi independen untuk concurrent start. |
+| Browser kedua PBI | 18 test Laravel Dusk, 127 assertion; seluruhnya lulus, tanpa gagal/skip. Masing-masing PBI memiliki 9 eksekusi test browser setelah ekspansi dataset. |
+| Keterlacakan ID Jira | 21 ID PBI-05 + 25 ID PBI-06 = 46 ID; seluruhnya tercantum dalam pemetaan PRD dan atribut test, tanpa ID yang belum dipetakan. |
+| Format dan diff | `vendor/bin/pint --dirty --format agent` lulus; `git diff --check` bersih. |
+
+Lingkungan verifikasi: PHP 8.4.27, Laravel 13.38.0, PHPUnit 12.5.40, Laravel Dusk 8.7.2, MySQL 8.0.30, Chrome 157.0.8103.79 dan ChromeDriver 157.0.8103.78. Database feature dan browser terpisah (`forestguard_pbi0506_test` dan `forestguard_pbi0506_dusk`) pada instance lokal port 55356; browser memakai server uji port 8016. Tidak menggunakan database aplikasi.
+
+Percobaan MySQL awal ditolak karena environment password kosong jatuh ke konfigurasi aplikasi. Putaran Dusk awal juga gagal akibat server uji lama dengan kredensial tersebut. Setelah memakai akun database khusus dan server pengganti yang dikonfirmasi menampilkan form login, suite terkait dijalankan ulang hingga seluruh hasil akhir di atas lulus. Kegagalan awal tersebut tidak dihitung sebagai keberhasilan.
+
+Catatan batas bukti: hasil ini mencakup suite PBI-05/PBI-06, bukan klaim seluruh suite aplikasi atau target performa ≤3 detik. Gangguan jaringan diuji melalui fault injection browser yang terkontrol; pengiriman notifikasi nyata dan operasi offline tetap menjadi scope PBI pemiliknya.
