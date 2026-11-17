@@ -11,10 +11,15 @@ use Illuminate\Support\Str;
 use Laravel\Dusk\Browser;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\DuskTestCase;
+use Illuminate\Support\Facades\Artisan;
 
 class Pbi08FieldRecordingTest extends DuskTestCase
 {
-    use DatabaseMigrations;
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Artisan::call('migrate:fresh');
+    }
 
     #[DataProvider('observationCategories')]
     public function test_each_category_accepts_five_characters_after_trim_and_manual_location(string $category): void

@@ -5,7 +5,11 @@ namespace Tests;
 use Database\Seeders\UserSeeder;
 use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
+use Facebook\WebDriver\Remote\DriverCommand;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
+use Facebook\WebDriver\Remote\WebDriverCommand;
+use Facebook\WebDriver\Remote\WebDriverResponse;
+use Facebook\WebDriver\WebDriverCommandExecutor;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Laravel\Dusk\Browser;
@@ -127,11 +131,43 @@ abstract class DuskTestCase extends BaseTestCase
             ]);
         })->all());
 
-        return RemoteWebDriver::create(
+        $driver = RemoteWebDriver::create(
             $_ENV['DUSK_DRIVER_URL'] ?? env('DUSK_DRIVER_URL') ?? 'http://localhost:9515',
             DesiredCapabilities::chrome()->setCapability(
                 ChromeOptions::CAPABILITY, $options
             )
         );
+
+        if (filter_var(env('DUSK_SLOW_MODE', false), FILTER_VALIDATE_BOOLEAN)) {
+            $delayMilliseconds = max(0, min(10000, (int) env('DUSK_SLOW_MS', 1000)));
+
+            $driver->setCommandExecutor(new class($driver->getCommandExecutor(), $delayMilliseconds) implements WebDriverCommandExecutor
+            {
+                public function __construct(
+                    private WebDriverCommandExecutor $executor,
+                    private int $delayMilliseconds,
+                ) {}
+
+                public function execute(WebDriverCommand $command): WebDriverResponse
+                {
+                    if (in_array($command->getName(), [
+                        DriverCommand::GET,
+                        DriverCommand::CLICK_ELEMENT,
+                        DriverCommand::SEND_KEYS_TO_ELEMENT,
+                        DriverCommand::SEND_KEYS_TO_ACTIVE_ELEMENT,
+                        DriverCommand::SUBMIT_ELEMENT,
+                        DriverCommand::CLICK,
+                        DriverCommand::DOUBLE_CLICK,
+                        DriverCommand::ACTIONS,
+                    ], true)) {
+                        usleep($this->delayMilliseconds * 1000);
+                    }
+
+                    return $this->executor->execute($command);
+                }
+            });
+        }
+
+        return $driver;
     }
 }

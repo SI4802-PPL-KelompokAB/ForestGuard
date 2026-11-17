@@ -12,10 +12,15 @@ use Laravel\Dusk\Browser;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 use Tests\DuskTestCase;
+use Illuminate\Support\Facades\Artisan;
 
 class Pbi05PatrolAssignmentTest extends DuskTestCase
 {
-    use DatabaseMigrations;
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Artisan::call('migrate:fresh');
+    }
 
     #[TestDox('TC-PBI05-03a: required inputs prevent submission and corrected input creates one assignment')]
     public function test_empty_assignment_fields_prevent_submission_until_completed(): void
