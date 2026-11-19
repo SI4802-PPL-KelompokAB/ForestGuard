@@ -33,7 +33,8 @@ class Pbi03UserManagementTest extends DuskTestCase
     use DatabaseMigrations;
 
     private const PASSWORD_SEEDER = 'Password123!'; // UserSeeder::DEV_PASSWORD
-    private const LOGIN_BUTTON    = 'Masuk';        // teks tombol di halaman login
+
+    private const LOGIN_BUTTON = 'Masuk';        // teks tombol di halaman login
 
     protected function setUp(): void
     {
@@ -61,15 +62,15 @@ class Pbi03UserManagementTest extends DuskTestCase
             $query['status'] = $status;
         }
 
-        return $browser->visit('/admin/pengguna?' . http_build_query($query))
+        return $browser->visit('/admin/pengguna?'.http_build_query($query))
             ->waitForText($email);
     }
 
     private function actionElements(Browser $browser, string $email, string $label): array
     {
         $xpath = "//tr[contains(normalize-space(.), '{$email}')]"
-            . "//*[(self::a or self::button or self::input) "
-            . "and (contains(normalize-space(.), '{$label}') or @value='{$label}')]";
+            .'//*[(self::a or self::button or self::input) '
+            ."and (contains(normalize-space(.), '{$label}') or @value='{$label}')]";
 
         return $browser->driver->findElements(WebDriverBy::xpath($xpath));
     }
@@ -149,7 +150,7 @@ class Pbi03UserManagementTest extends DuskTestCase
         });
 
         $this->assertDatabaseHas('users', [
-            'email'     => 'ranger.dusk@forestguard.test',
+            'email' => 'ranger.dusk@forestguard.test',
             'is_active' => true,
         ]);
     }
@@ -193,8 +194,8 @@ class Pbi03UserManagementTest extends DuskTestCase
             // role tidak valid disuntik lewat JS karena <select> hanya berisi opsi sah
             $browser->script(
                 "var s=document.querySelector('[name=role]');"
-                . "var o=document.createElement('option');o.value='invalid_role';o.text='x';"
-                . "s.appendChild(o);s.value='invalid_role';"
+                ."var o=document.createElement('option');o.value='invalid_role';o.text='x';"
+                ."s.appendChild(o);s.value='invalid_role';"
             );
 
             $browser->press('Tambah akun')
@@ -279,8 +280,8 @@ class Pbi03UserManagementTest extends DuskTestCase
         });
 
         $this->assertDatabaseHas('users', [
-            'email'     => 'ranger1@forestguard.test',
-            'name'      => 'Ranger Satu Edit',
+            'email' => 'ranger1@forestguard.test',
+            'name' => 'Ranger Satu Edit',
             'is_active' => false,
         ]);
     }

@@ -1,4 +1,8 @@
 import { rememberDevicePosition } from './device-location';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+window.L = L;
 
 /**
  * PBI-07: Pelacakan Rute GPS Selama Patroli (FR-07)
@@ -31,8 +35,18 @@ async function initPatrolTrackingAndMap() {
         return;
     }
 
+    // Enforce container dimensions so Leaflet never collapses to 0 height
+    mapContainer.style.height = '450px';
+    mapContainer.style.minHeight = '450px';
+    mapContainer.style.width = '100%';
+    mapContainer.style.display = 'block';
+
     // Default center (Bandung / Indonesia region if empty)
     const map = L.map(mapContainer).setView([-6.917464, 107.619123], 14);
+
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 50);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -106,6 +120,42 @@ async function initPatrolTrackingAndMap() {
         }
     }
 
+    // Render forest area boundary if present
+    if (mapContainer.dataset.forestBoundary) {
+        try {
+            const boundary = JSON.parse(mapContainer.dataset.forestBoundary);
+            if (boundary && boundary.type === 'Polygon' && Array.isArray(boundary.coordinates?.[0])) {
+                const polygonCoords = boundary.coordinates[0].map(coord => [Number(coord[1]), Number(coord[0])]);
+                L.polygon(polygonCoords, {
+                    color: '#059669',
+                    weight: 2,
+                    fillColor: '#10b981',
+                    fillOpacity: 0.15,
+                    dashArray: '5, 5',
+                }).addTo(map).bindPopup(`Kawasan Hutan: ${mapContainer.dataset.forestAreaName || 'Area Konservasi'}`);
+
+                polygonCoords.forEach(c => allBounds.push(c));
+            }
+        } catch (e) {
+            console.warn('Gagal memuat batas kawasan hutan:', e);
+        }
+    }
+
+    const liveIcon = L.divIcon({
+        html: `
+            <div style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;">
+                <span style="position:absolute;width:100%;height:100%;border-radius:50%;background:#10b981;opacity:0.75;animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></span>
+                <div style="position:relative;width:24px;height:24px;border-radius:50%;background:#047857;border:2.5px solid #ffffff;box-shadow:0 4px 6px -1px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:#ffffff;">
+                    <svg xmlns="http://www.w3.org/2000/svg" style="width:12px;height:12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
+                </div>
+            </div>
+        `,
+        className: 'custom-live-marker',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -16],
+    });
+
     // Fetch existing tracks
     if (tracksUrl) {
         try {
@@ -122,7 +172,7 @@ async function initPatrolTrackingAndMap() {
 
                     // Marker on start point
                     L.circleMarker(latLngs[0], {
-                        radius: 6,
+                        radius: 7,
                         color: '#047857',
                         fillColor: '#10b981',
                         fillOpacity: 1,
@@ -130,7 +180,7 @@ async function initPatrolTrackingAndMap() {
 
                     // Marker on latest point
                     const latest = latLngs[latLngs.length - 1];
-                    currentMarker = L.marker(latest).addTo(map).bindPopup('Posisi Terakhir');
+                    currentMarker = L.marker(latest, { icon: liveIcon }).addTo(map).bindPopup('Posisi Terkini Ranger');
                 }
             }
         } catch (e) {
@@ -140,8 +190,12 @@ async function initPatrolTrackingAndMap() {
 
     // Adjust zoom if bounds exist
     if (allBounds.length > 0) {
-        map.fitBounds(L.latLngBounds(allBounds), { padding: [35, 35] });
+        map.fitBounds(L.latLngBounds(allBounds), { padding: [40, 40] });
     }
+
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 250);
 
     // If patrol is in progress and user is ranger, start tracking GPS
     if (isRunning && recordTrackUrl && navigator.geolocation) {

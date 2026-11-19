@@ -11,15 +11,12 @@ use Database\Seeders\CaseStatusSeeder;
 use Database\Seeders\ForestAreaSeeder;
 use Database\Seeders\IncidentTypeSeeder;
 use Database\Seeders\RoleSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use PHPUnit\Framework\Attributes\TestDox;
 use Tests\DuskTestCase;
 
 class Pbi26CoverageValidationTest extends DuskTestCase
 {
-    use DatabaseMigrations;
-
     protected function setUp(): void
     {
         parent::setUp();

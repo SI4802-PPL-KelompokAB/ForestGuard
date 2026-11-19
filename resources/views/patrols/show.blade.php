@@ -156,10 +156,14 @@
                     </span>
                 @endif
             </div>
-            <div id="patrol-map" class="h-80 w-full bg-slate-100"
+            <div id="patrol-map"
+                 class="w-full bg-slate-100 relative z-0"
+                 style="height: 450px; min-height: 450px; width: 100%; display: block;"
                  data-patrol-tracks-url="{{ route(auth()->user()->isAdmin() ? 'admin.patrols.tracks.index' : 'ranger.patrols.tracks.index', $patrol) }}"
                  data-record-track-url="{{ auth()->user()->isRanger() ? route('ranger.patrols.tracks.store', $patrol) : '' }}"
-                 data-checkpoints="{{ json_encode($checkpointsData) }}">
+                 data-checkpoints="{{ json_encode($checkpointsData) }}"
+                 data-forest-area-name="{{ $patrol->forestArea?->name }}"
+                 data-forest-boundary="{{ json_encode($patrol->forestArea?->boundary) }}">
             </div>
         </div>
 

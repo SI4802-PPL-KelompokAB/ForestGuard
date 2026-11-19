@@ -8,7 +8,6 @@ use App\Models\Patrol;
 use App\Models\PatrolTrack;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Str;
 use Laravel\Dusk\Browser;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -16,8 +15,6 @@ use Tests\DuskTestCase;
 
 class Pbi07PatrolTrackTest extends DuskTestCase
 {
-    use DatabaseMigrations;
-
     #[TestDox('TC07-01: Guest / Unauthenticated cannot record GPS track (HTTP 401 Unauthorized)')]
     public function test_tc07_01_guest_cannot_record_gps_tracks(): void
     {
@@ -33,7 +30,8 @@ class Pbi07PatrolTrackTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($patrol): void {
             $browser->logout()
                 ->visitRoute('ranger.patrols.tracks.index', $patrol)
-                ->slow()
+                ->stepNotice('TC07-01: Guest tanpa sesi akses endpoint -> Dialihkan otomatis ke Login', 2500)
+                ->highlight('input[name="email"]')
                 ->assertRouteIs('login');
         });
 
@@ -58,7 +56,7 @@ class Pbi07PatrolTrackTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($citizen, $patrol): void {
             $browser->loginAs($citizen)
                 ->visit('/ranger/patroli/'.$patrol->id)
-                ->slow()
+                ->stepNotice('TC07-02: Citizen akses rute Ranger -> Ditolak (HTTP 403 Akses Ditolak)', 2500)
                 ->assertSee('403')
                 ->assertSee('Akses ditolak');
         });
@@ -90,7 +88,7 @@ class Pbi07PatrolTrackTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($assignedPatrol): void {
             $browser->loginAs($assignedPatrol->ranger)
                 ->visitRoute('ranger.patrols.show', $assignedPatrol)
-                ->slow()
+                ->stepNotice('TC07-03: Patroli status Ditugaskan -> GPS belum aktif (Ditolak 409 Conflict)', 2500)
                 ->assertSee('Ditugaskan')
                 ->assertMissing('[data-gps-indicator]');
         });
@@ -115,7 +113,8 @@ class Pbi07PatrolTrackTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($patrol): void {
             $browser->loginAs($patrol->ranger)
                 ->visitRoute('ranger.patrols.show', $patrol)
-                ->slow()
+                ->stepNotice('TC07-04: Validasi Format Koordinat -> Server menolak jika latitude/longitude di luar bumi', 2500)
+                ->highlight('#patrol-map')
                 ->assertPresent('#patrol-map');
         });
 
@@ -155,16 +154,17 @@ class Pbi07PatrolTrackTest extends DuskTestCase
             'longitude' => 107.6191230,
         ]);
 
+        $patrol->refresh();
+        $this->assertNull($patrol->total_distance_km);
+
         $this->browse(function (Browser $browser) use ($patrol): void {
             $browser->loginAs($patrol->ranger)
                 ->visitRoute('ranger.patrols.show', $patrol)
-                ->slow()
+                ->stepNotice('TC07-05: Titik awal valid (-6.917464, 107.619123) tersimpan (201, Total Jarak 0 km)', 2500)
+                ->highlight('#patrol-map')
                 ->assertSee('Berlangsung')
                 ->assertPresent('#patrol-map');
         });
-
-        $patrol->refresh();
-        $this->assertNull($patrol->total_distance_km);
     }
 
     #[TestDox('TC07-06: Ranger records next GPS coordinate ~231m away and total distance accumulates via Haversine')]
@@ -202,7 +202,9 @@ class Pbi07PatrolTrackTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($patrol): void {
             $browser->loginAs($patrol->ranger)
                 ->visitRoute('ranger.patrols.show', $patrol)
-                ->slow()
+                ->stepNotice('TC07-06: Titik ke-2 (~231m) masuk -> Jarak akumulasi bertambah (Haversine 0.231 km)', 2500)
+                ->highlight('[data-patrol-distance]')
+                ->highlight('#patrol-map')
                 ->assertSee('Berlangsung')
                 ->assertPresent('[data-patrol-distance]')
                 ->assertPresent('#patrol-map');
@@ -250,7 +252,9 @@ class Pbi07PatrolTrackTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($patrol): void {
             $browser->loginAs($patrol->ranger)
                 ->visitRoute('ranger.patrols.show', $patrol)
-                ->slow()
+                ->stepNotice('TC07-07: Batch array 3 titik offline sync masuk -> Total jarak terakumulasi 0.498 km', 2500)
+                ->highlight('[data-patrol-distance]')
+                ->highlight('#patrol-map')
                 ->assertPresent('#patrol-map');
         });
     }
@@ -284,7 +288,8 @@ class Pbi07PatrolTrackTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($patrol): void {
             $browser->loginAs($patrol->ranger)
                 ->visitRoute('ranger.patrols.show', $patrol)
-                ->slow()
+                ->stepNotice('TC07-08: Request duplikat UUID sama (Idempotent) -> Diterima 201 tanpa duplikasi DB', 2500)
+                ->highlight('[data-patrol-distance]')
                 ->assertSee('Berlangsung');
         });
     }
@@ -300,7 +305,8 @@ class Pbi07PatrolTrackTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($admin, $patrol): void {
             $browser->loginAs($admin)
                 ->visitRoute('admin.patrols.show', $patrol)
-                ->slow()
+                ->stepNotice('TC07-09: Admin mengambil riwayat seluruh titik koordinat rute patroli (200 OK)', 2500)
+                ->highlight('#patrol-map')
                 ->assertSee('Peta Rute Patroli')
                 ->assertPresent('#patrol-map');
         });
@@ -324,7 +330,7 @@ class Pbi07PatrolTrackTest extends DuskTestCase
 
         $checkpoint = Checkpoint::factory()->for($patrol->forestArea)->create([
             'name' => 'Pos Pantau Satu',
-            'code' => 'CP-01',
+            'code' => 'CP-'.Str::upper(Str::random(5)),
             'latitude' => -6.8560000,
             'longitude' => 107.6320000,
         ]);
@@ -356,15 +362,19 @@ class Pbi07PatrolTrackTest extends DuskTestCase
 
         $this->browse(function (Browser $browser) use ($admin, $patrol): void {
             $browser->loginAs($admin)
-                ->slow()
                 ->visitRoute('admin.patrols.show', $patrol)
                 ->waitForText('Peta Rute Patroli')
-                ->slow()
+                ->stepNotice('TC07-10: Admin memantau visualisasi peta rute lintasan, checkpoint & total jarak', 2500)
+                ->highlight('[data-patrol-distance]', 2000);
+
+            $browser->script("document.getElementById('patrol-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' });");
+
+            $browser->highlight('#patrol-map', 4000)
+                ->pause(3500)
                 ->assertSee('Peta Rute Patroli')
                 ->assertSee($patrol->forestArea->name)
                 ->assertPresent('[data-patrol-distance]')
-                ->assertPresent('#patrol-map')
-                ->slow();
+                ->assertPresent('#patrol-map');
         });
     }
 
@@ -374,19 +384,41 @@ class Pbi07PatrolTrackTest extends DuskTestCase
         $this->seed(RoleSeeder::class);
 
         $ranger = User::factory()->ranger()->create();
-        $patrol = Patrol::factory()->inProgress()->for($ranger, 'ranger')->create();
+        $patrol = Patrol::factory()->inProgress()->for($ranger, 'ranger')->create([
+            'total_distance_km' => 1.45,
+        ]);
+
+        $patrol->tracks()->create([
+            'client_uuid' => (string) Str::uuid(),
+            'latitude' => -6.8560000,
+            'longitude' => 107.6320000,
+            'recorded_at' => now('UTC')->subMinutes(10),
+            'distance_from_previous_km' => 0.00,
+        ]);
+
+        $patrol->tracks()->create([
+            'client_uuid' => (string) Str::uuid(),
+            'latitude' => -6.8650000,
+            'longitude' => 107.6410000,
+            'recorded_at' => now('UTC')->subMinutes(5),
+            'distance_from_previous_km' => 1.45,
+        ]);
 
         $this->browse(function (Browser $browser) use ($ranger, $patrol): void {
             $browser->loginAs($ranger)
-                ->slow()
                 ->visitRoute('ranger.patrols.show', $patrol)
                 ->waitForText('Peta Rute Patroli')
-                ->slow()
+                ->stepNotice('TC07-11: Halaman Ranger aktif -> Status Berlangsung, Tracking Aktif & Sensor GPS pulse', 2500)
+                ->highlight('[data-gps-indicator]', 2000);
+
+            $browser->script("document.getElementById('patrol-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' });");
+
+            $browser->highlight('#patrol-map', 4000)
+                ->pause(3500)
                 ->assertSee('Peta Rute Patroli')
                 ->assertSee('Tracking Aktif')
                 ->assertPresent('[data-gps-indicator]')
-                ->assertPresent('#patrol-map')
-                ->slow();
+                ->assertPresent('#patrol-map');
         });
     }
 }
