@@ -218,10 +218,9 @@ class Pbi02AuthAndRbacTest extends DuskTestCase
                 ->waitForText('Akses ditolak')
                 ->assertSee('HTTP 403');
 
-            $browser->press('Keluar');
-
             // 2. Guest mengakses rute terproteksi langsung dialihkan ke /login
             $browser->logout();
+            $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/admin/dashboard')
                 ->assertPathIs('/login');
 
