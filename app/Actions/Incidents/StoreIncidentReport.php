@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class StoreIncidentReport
 {
@@ -31,7 +32,16 @@ class StoreIncidentReport
             return $existing;
         }
 
-        $filePath = $photo->store('evidences/incidents', 'public');
+        $diskName = config('filesystems.evidence_disk', 's3');
+        $filePath = $photo->store('evidences/incidents', [
+            'disk' => $diskName,
+            'visibility' => 'private',
+        ]);
+
+        if (! is_string($filePath)) {
+            throw new RuntimeException('Gagal menyimpan foto bukti ke penyimpanan privat.');
+        }
+
         $fileSize = $photo->getSize();
         $mimeType = $photo->getMimeType() ?: 'image/jpeg';
 

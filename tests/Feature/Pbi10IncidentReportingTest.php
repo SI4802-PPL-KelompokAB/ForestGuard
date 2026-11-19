@@ -33,7 +33,9 @@ class Pbi10IncidentReportingTest extends TestCase
             IncidentTypeSeeder::class,
             ForestAreaSeeder::class,
         ]);
+        Storage::fake('private');
         Storage::fake('public');
+        config()->set('filesystems.evidence_disk', 'private');
     }
 
     public function test_guest_cannot_access_or_submit_incident_report(): void
@@ -104,7 +106,8 @@ class Pbi10IncidentReportingTest extends TestCase
         $this->assertNull($evidence->observation_id);
         $this->assertNull($evidence->update_id);
         $this->assertEquals(-6.7574, (float) $evidence->latitude);
-        Storage::disk('public')->assertExists($evidence->file_path);
+        Storage::disk('private')->assertExists($evidence->file_path);
+        Storage::disk('public')->assertMissing($evidence->file_path);
 
         // 3. Assert Status Histories Table
         $history = StatusHistory::sole();
