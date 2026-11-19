@@ -5,14 +5,38 @@ namespace Tests;
 use Database\Seeders\UserSeeder;
 use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
+use Facebook\WebDriver\Remote\DriverCommand;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
+use Facebook\WebDriver\Remote\WebDriverCommand;
+use Facebook\WebDriver\Remote\WebDriverResponse;
+use Facebook\WebDriver\WebDriverCommandExecutor;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Http;
 use Laravel\Dusk\Browser;
 use Laravel\Dusk\TestCase as BaseTestCase;
 use PHPUnit\Framework\Attributes\BeforeClass;
 
 abstract class DuskTestCase extends BaseTestCase
 {
+    /**
+     * Leave script-driven pages before database migration callbacks run.
+     * The health request drains earlier requests on the single-worker test server.
+     */
+    protected function tearDown(): void
+    {
+        try {
+            foreach (static::$browsers as $browser) {
+                $browser->blank();
+            }
+
+            if (count(static::$browsers) > 0) {
+                Http::timeout(15)->get($this->baseUrl().'/up')->throw();
+            }
+        } finally {
+            parent::tearDown();
+        }
+    }
+
     /**
      * Prepare for Dusk test execution.
      */
@@ -63,6 +87,22 @@ abstract class DuskTestCase extends BaseTestCase
                 ->press('Masuk')
                 ->waitForRoute('citizen.home');
         });
+
+        Browser::macro('slow', function (?int $ms = null) {
+            /** @var Browser $this */
+            $enabled = env('DUSK_SLOW_MODE') ?? $_ENV['DUSK_SLOW_MODE'] ?? $_SERVER['DUSK_SLOW_MODE'] ?? false;
+            if ($enabled === 'true' || $enabled === true || $enabled === '1' || $enabled === 1) {
+                $delay = $ms ?? (int) (env('DUSK_SLOW_MS') ?? $_ENV['DUSK_SLOW_MS'] ?? $_SERVER['DUSK_SLOW_MS'] ?? 1000);
+                $this->pause($delay);
+            }
+
+            return $this;
+        });
+    }
+
+    public function slow(Browser $browser, ?int $ms = null): Browser
+    {
+        return $browser->slow($ms);
     }
 
     public function loginAsAdmin(Browser $browser): Browser
@@ -81,6 +121,17 @@ abstract class DuskTestCase extends BaseTestCase
     }
 
     /**
+     * Override default DatabaseMigrations handling to prevent rollback from dropping tables
+     * during Dusk test suites running against a shared web server and persistent database.
+     *
+     * @return void
+     */
+    public function runDatabaseMigrations()
+    {
+        $this->artisan('migrate');
+    }
+
+    /**
      * Create the RemoteWebDriver instance.
      */
     protected function driver(): RemoteWebDriver
@@ -96,11 +147,43 @@ abstract class DuskTestCase extends BaseTestCase
             ]);
         })->all());
 
-        return RemoteWebDriver::create(
+        $driver = RemoteWebDriver::create(
             $_ENV['DUSK_DRIVER_URL'] ?? env('DUSK_DRIVER_URL') ?? 'http://localhost:9515',
             DesiredCapabilities::chrome()->setCapability(
                 ChromeOptions::CAPABILITY, $options
             )
         );
+
+        if (filter_var(env('DUSK_SLOW_MODE', false), FILTER_VALIDATE_BOOLEAN)) {
+            $delayMilliseconds = max(0, min(10000, (int) env('DUSK_SLOW_MS', 1000)));
+
+            $driver->setCommandExecutor(new class($driver->getCommandExecutor(), $delayMilliseconds) implements WebDriverCommandExecutor
+            {
+                public function __construct(
+                    private WebDriverCommandExecutor $executor,
+                    private int $delayMilliseconds,
+                ) {}
+
+                public function execute(WebDriverCommand $command): WebDriverResponse
+                {
+                    if (in_array($command->getName(), [
+                        DriverCommand::GET,
+                        DriverCommand::CLICK_ELEMENT,
+                        DriverCommand::SEND_KEYS_TO_ELEMENT,
+                        DriverCommand::SEND_KEYS_TO_ACTIVE_ELEMENT,
+                        DriverCommand::SUBMIT_ELEMENT,
+                        DriverCommand::CLICK,
+                        DriverCommand::DOUBLE_CLICK,
+                        DriverCommand::ACTIONS,
+                    ], true)) {
+                        usleep($this->delayMilliseconds * 1000);
+                    }
+
+                    return $this->executor->execute($command);
+                }
+            });
+        }
+
+        return $driver;
     }
 }

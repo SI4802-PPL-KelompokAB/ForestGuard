@@ -117,6 +117,8 @@ jobs:
         run: php artisan migrate:fresh --seed --env=dusk.local --force
 
       - name: Run Laravel Dusk Tests
+        env:
+          PHP_CLI_SERVER_WORKERS: '1'
         run: |
           cp .env.dusk.local .env
           php artisan serve --port=8000 &
