@@ -32,7 +32,8 @@ class Pbi26CoverageValidationTest extends TestCase
             ForestAreaSeeder::class,
         ]);
 
-        Storage::fake('public');
+        Storage::fake('private');
+        config()->set('filesystems.evidence_disk', 'private');
     }
 
     public function test_forest_area_seeder_seeds_valid_west_java_forest_areas_with_boundaries_and_coordinates(): void
