@@ -34,7 +34,8 @@ class Pbi25LocationPickerTest extends TestCase
             ForestAreaSeeder::class,
         ]);
 
-        Storage::fake('public');
+        Storage::fake('private');
+        config()->set('filesystems.evidence_disk', 'private');
     }
 
     public function test_citizen_can_submit_report_with_selected_coordinates(): void

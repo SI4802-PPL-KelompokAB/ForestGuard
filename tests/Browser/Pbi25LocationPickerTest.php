@@ -2,6 +2,10 @@
 
 namespace Tests\Browser;
 
+use App\Models\Evidence;
+use App\Models\ForestArea;
+use App\Models\Incident;
+use App\Models\IncidentType;
 use App\Models\Patrol;
 use App\Models\User;
 use Database\Seeders\CaseStatusSeeder;
@@ -13,7 +17,9 @@ use Database\Seeders\RoleSeeder;
 use Database\Seeders\UserSeeder;
 use Facebook\WebDriver\WebDriverBy;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Dusk\Browser;
+use RuntimeException;
 use Tests\DuskTestCase;
 
 class Pbi25LocationPickerTest extends DuskTestCase
@@ -57,6 +63,53 @@ class Pbi25LocationPickerTest extends DuskTestCase
             $browser->assertPresent('.leaflet-marker-icon')
                 ->assertInputValue('#latitude', '-6.7890000')
                 ->assertInputValue('#longitude', '107.6540000');
+        });
+    }
+
+    public function test_citizen_submission_persists_map_coordinates_and_private_evidence(): void
+    {
+        if (config('filesystems.evidence_disk') !== 'local') {
+            throw new RuntimeException('Set EVIDENCE_DISK=local for Dusk evidence persistence tests.');
+        }
+
+        $incidentType = IncidentType::query()->firstOrFail();
+        $forestArea = ForestArea::query()
+            ->where('name', 'Taman Hutan Raya Ir. H. Djuanda')
+            ->firstOrFail();
+        $photoPath = base_path('tests/Browser/fixtures/test-photo.jpg');
+
+        $this->browse(function (Browser $browser) use ($incidentType, $forestArea, $photoPath): void {
+            $browser->loginAsCitizen()
+                ->visitRoute('citizen.incidents.create')
+                ->waitFor('.leaflet-container', 15)
+                ->radio('incident_type_id', (string) $incidentType->id)
+                ->select('forest_area_id', (string) $forestArea->id)
+                ->type('description', 'DUSK-PBI25 laporan lokasi peta tersimpan ke database.')
+                ->attach('#photo', $photoPath);
+
+            $browser->script(<<<'JS'
+                const picker = document.querySelector('[data-location-picker]');
+                picker.__locationMap.setView([-6.8560000, 107.6320000], 15);
+                picker.__locationMap.fire('click', {
+                    latlng: { lat: -6.8560000, lng: 107.6320000 },
+                });
+            JS);
+
+            $clientUuid = $browser->value('#client_uuid');
+            if (! is_string($clientUuid) || $clientUuid === '') {
+                throw new RuntimeException('Client UUID laporan tidak ditemukan pada form.');
+            }
+
+            $browser->press('Kirim Laporan')
+                ->waitForText('Laporan berhasil terkirim', 15)
+                ->assertSee('Laporan berhasil terkirim');
+
+            $incident = Incident::query()->where('client_uuid', $clientUuid)->firstOrFail();
+            $evidence = Evidence::query()->where('incident_id', $incident->id)->sole();
+
+            $this->assertSame('-6.8560000', $incident->latitude);
+            $this->assertSame('107.6320000', $incident->longitude);
+            Storage::disk('local')->assertExists($evidence->file_path);
         });
     }
 

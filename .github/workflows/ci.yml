@@ -69,6 +69,7 @@ jobs:
           DB_USERNAME=postgres
           DB_PASSWORD=password
           DB_SSLMODE=disable
+          EVIDENCE_DISK=local
           SESSION_DRIVER=database
           CACHE_STORE=database
           QUEUE_CONNECTION=sync
