@@ -11,7 +11,8 @@
     </div>
 
     <x-card class="max-w-2xl">
-        <form method="POST" action="{{ route('admin.master.checkpoints.store') }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.master.checkpoints.store') }}" class="space-y-4"
+              data-confirm="Apakah Anda yakin ingin menambahkan checkpoint ini?">
             @csrf
             <div>
                 <label for="forest_area_id" class="mb-1 block text-sm font-medium text-slate-700">Kawasan Hutan</label>

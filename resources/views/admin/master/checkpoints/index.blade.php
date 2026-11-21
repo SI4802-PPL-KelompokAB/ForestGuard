@@ -79,14 +79,15 @@
                             <td class="px-4 py-3">
                                 <div class="flex flex-wrap gap-2">
                                     @if ($cp->trashed())
-                                        <form method="POST" action="{{ route('admin.master.checkpoints.restore', $cp) }}">
+                                        <form method="POST" action="{{ route('admin.master.checkpoints.restore', $cp) }}"
+                                              data-confirm="Apakah Anda yakin ingin memulihkan checkpoint ini?">
                                             @csrf
                                             <button type="submit" class="text-sm font-medium text-forest-700 hover:underline">Pulihkan</button>
                                         </form>
                                     @else
                                         <a href="{{ route('admin.master.checkpoints.edit', $cp) }}" class="text-sm font-medium text-forest-700 hover:underline">Ubah</a>
                                         <form method="POST" action="{{ route('admin.master.checkpoints.destroy', $cp) }}"
-                                              onsubmit="return confirm('Hapus checkpoint ini? Titik ini tidak akan muncul pada patroli baru.')">
+                                              data-confirm="Apakah Anda yakin ingin menghapus checkpoint ini? Titik ini tidak akan muncul pada patroli baru.">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="text-sm font-medium text-red-700 hover:underline">Hapus</button>

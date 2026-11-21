@@ -11,7 +11,8 @@
     </div>
 
     <x-card class="max-w-2xl">
-        <form method="POST" action="{{ route('admin.master.forest-areas.store') }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.master.forest-areas.store') }}" class="space-y-4"
+              data-confirm="Apakah Anda yakin ingin menambahkan kawasan hutan ini?">
             @csrf
             <x-input name="name" label="Nama kawasan" required placeholder="Contoh: Kawasan Konservasi Bukit Barisan" />
 
@@ -27,10 +28,7 @@
 
             <x-input name="area_ha" type="number" step="0.01" label="Luas kawasan (hektar)" required placeholder="Contoh: 1540.50" />
 
-            <div class="grid gap-4 sm:grid-cols-2">
-                <x-input name="center_lat" type="number" step="0.0000001" label="Latitude Pusat" required placeholder="Contoh: -6.1234567" />
-                <x-input name="center_lng" type="number" step="0.0000001" label="Longitude Pusat" required placeholder="Contoh: 106.1234567" />
-            </div>
+            <x-forest-area-location-picker />
 
             <div>
                 <label for="boundary" class="mb-1 block text-sm font-medium text-slate-700">Batas Kawasan (GeoJSON Polygon Opsional)</label>

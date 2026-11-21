@@ -11,7 +11,8 @@
     </div>
 
     <x-card class="max-w-xl">
-        <form method="POST" action="{{ route('admin.master.risk-levels.store') }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.master.risk-levels.store') }}" class="space-y-4"
+              data-confirm="Apakah Anda yakin ingin menambahkan tingkat risiko ini?">
             @csrf
             <x-input name="name" label="Nama tingkat risiko" required placeholder="Contoh: Darurat / Kritis" />
             <x-input name="sort_order" type="number" min="1" label="Bobot / Urutan Prioritas" required placeholder="Contoh: 1 (Urutan paling tinggi)" />

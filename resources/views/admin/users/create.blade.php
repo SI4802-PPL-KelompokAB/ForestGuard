@@ -11,7 +11,8 @@
     </div>
 
     <x-card class="max-w-xl">
-        <form method="POST" action="{{ route('admin.users.store') }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.users.store') }}" class="space-y-4"
+              data-confirm="Apakah Anda yakin ingin membuat akun pengguna ini?">
             @csrf
             <x-input name="name" label="Nama lengkap" required autocomplete="name" />
             <x-input name="email" type="email" label="Email" required autocomplete="email" />
