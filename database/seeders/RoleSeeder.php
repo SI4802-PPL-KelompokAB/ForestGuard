@@ -1,5 +1,7 @@
 <?php
 
+// PBI-03: Bagian kode yang mendukung manajemen pengguna dan RBAC.
+
 namespace Database\Seeders;
 
 use App\Models\Role;

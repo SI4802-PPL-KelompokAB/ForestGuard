@@ -1,5 +1,7 @@
 <?php
 
+// PBI-04: Bagian kode yang mendukung master data dan proteksi akses.
+
 namespace Tests\Browser;
 
 use App\Models\Checkpoint;
@@ -10,25 +12,60 @@ use App\Models\PatrolCheckpoint;
 use App\Models\RiskLevel;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Str;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class Pbi04MasterDataTest extends DuskTestCase
 {
-    use DatabaseMigrations;
-
     protected function setUp(): void
     {
         parent::setUp();
+        $this->cleanPbi04Fixtures();
         $this->seed(DatabaseSeeder::class);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->cleanPbi04Fixtures();
+        parent::tearDown();
+    }
+
+    /** Remove only records created specifically by this PBI's tests. */
+    private function cleanPbi04Fixtures(): void
+    {
+        $areaNames = array_merge(
+            ['Kawasan PBI04 Dusk', 'Kawasan PBI04 Dusk Diperbarui', 'Kawasan Hapus PBI04'],
+            array_map(fn (int $number): string => "PBI04 Pagination {$number}", range(1, 16)),
+        );
+        $areaIds = ForestArea::withTrashed()->whereIn('name', $areaNames)->pluck('id');
+        $checkpointIds = Checkpoint::withTrashed()->whereIn('code', [
+            'CP-PBI04-CRUD',
+            'CP-PBI04-HISTORY',
+            'CP-PBI04-INVALID-COORD',
+            'CP-PBI04-INVALID-AREA',
+        ])->pluck('id');
+        $patrolIds = Patrol::query()->whereIn('forest_area_id', $areaIds)->pluck('id');
+
+        PatrolCheckpoint::query()
+            ->whereIn('patrol_id', $patrolIds)
+            ->orWhereIn('checkpoint_id', $checkpointIds)
+            ->delete();
+        Patrol::query()->whereIn('id', $patrolIds)->delete();
+        Checkpoint::withTrashed()->whereIn('id', $checkpointIds)->forceDelete();
+        ForestArea::withTrashed()->whereIn('id', $areaIds)->forceDelete();
+        IncidentType::withTrashed()->whereIn('name', [
+            'Tipe Insiden PBI04',
+            'Tipe Insiden PBI04 Diperbarui',
+        ])->forceDelete();
     }
 
     /** TC-PBI04-01: seluruh index master, paginasi, dan status read-only. */
     public function test_admin_can_browse_all_master_indexes_and_case_status_is_read_only(): void
     {
-        ForestArea::factory()->count(16)->create();
+        foreach (range(1, 16) as $number) {
+            ForestArea::factory()->create(['name' => "PBI04 Pagination {$number}"]);
+        }
 
         $this->browse(function (Browser $browser): void {
             $this->loginAsAdmin($browser)
@@ -346,6 +383,9 @@ class Pbi04MasterDataTest extends DuskTestCase
         ];
 
         $this->browse(function (Browser $browser) use ($masterRoutes): void {
+            $browser->logout();
+            $browser->driver->manage()->deleteAllCookies();
+
             foreach ($masterRoutes as $route) {
                 $browser->visitRoute($route)
                     ->waitFor('input#email')
