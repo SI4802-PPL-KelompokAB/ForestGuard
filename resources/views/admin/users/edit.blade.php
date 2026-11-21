@@ -15,7 +15,8 @@
     </div>
 
     <x-card class="max-w-xl">
-        <form method="POST" action="{{ route('admin.users.update', $managedUser) }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.users.update', $managedUser) }}" class="space-y-4"
+              data-confirm="Apakah Anda yakin ingin menyimpan perubahan pengguna ini?">
             @csrf
             @method('PUT')
             <x-input name="name" label="Nama lengkap" :value="$managedUser->name" required autocomplete="name" />

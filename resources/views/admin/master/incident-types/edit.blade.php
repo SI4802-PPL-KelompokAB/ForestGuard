@@ -11,7 +11,8 @@
     </div>
 
     <x-card class="max-w-xl">
-        <form method="POST" action="{{ route('admin.master.incident-types.update', $incidentType) }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.master.incident-types.update', $incidentType) }}" class="space-y-4"
+              data-confirm="Apakah Anda yakin ingin menyimpan perubahan tipe insiden ini?">
             @csrf
             @method('PUT')
             <x-input name="name" label="Nama tipe insiden" :value="$incidentType->name" required />

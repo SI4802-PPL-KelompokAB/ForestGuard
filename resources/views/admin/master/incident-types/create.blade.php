@@ -11,7 +11,8 @@
     </div>
 
     <x-card class="max-w-xl">
-        <form method="POST" action="{{ route('admin.master.incident-types.store') }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.master.incident-types.store') }}" class="space-y-4"
+              data-confirm="Apakah Anda yakin ingin menambahkan tipe insiden ini?">
             @csrf
             <x-input name="name" label="Nama tipe insiden" required placeholder="Contoh: Penebangan Liar (Illegal Logging)" />
             <x-button>Simpan tipe insiden</x-button>
