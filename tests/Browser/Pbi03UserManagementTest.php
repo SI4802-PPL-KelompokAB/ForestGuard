@@ -1,11 +1,12 @@
 <?php
 
+// PBI-03: Bagian kode yang mendukung manajemen pengguna dan RBAC.
+
 namespace Tests\Browser;
 
 use App\Models\Role;
 use App\Models\User;
 use Facebook\WebDriver\WebDriverBy;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
@@ -30,15 +31,31 @@ use Tests\DuskTestCase;
  */
 class Pbi03UserManagementTest extends DuskTestCase
 {
-    use DatabaseMigrations;
-
     private const PASSWORD_SEEDER = 'Password123!'; // UserSeeder::DEV_PASSWORD
     private const LOGIN_BUTTON    = 'Masuk';        // teks tombol di halaman login
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->cleanPbi03Fixtures();
         $this->seed(); // DatabaseSeeder -> roles + user fixture
+    }
+
+    protected function tearDown(): void
+    {
+        $this->cleanPbi03Fixtures();
+        parent::tearDown();
+    }
+
+    /** Remove only records created specifically by this PBI's tests. */
+    private function cleanPbi03Fixtures(): void
+    {
+        User::withTrashed()
+            ->whereIn('email', [
+                'ranger.dusk@forestguard.test',
+                'keyboard@forestguard.test',
+            ])
+            ->forceDelete();
     }
 
     // ---------- Helper ----------
@@ -107,7 +124,7 @@ class Pbi03UserManagementTest extends DuskTestCase
     {
         $this->browse(function (Browser $browser) {
             $this->loginAsAdminUser($browser)
-                ->visit('/admin/pengguna')
+                ->visit('/admin/pengguna?q=forestguard.test')
                 ->waitForText('Manajemen pengguna')
                 ->assertSee('Kelola akun admin, ranger, dan warga.')
                 ->assertSeeLink('Tambah akun')

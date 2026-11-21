@@ -1,3 +1,4 @@
+{{-- PBI-04: Tampilan halaman master data Admin. --}}
 @php
     $masterTabs = [
         [

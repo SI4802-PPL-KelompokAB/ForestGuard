@@ -1,5 +1,7 @@
 <?php
 
+// PBI-04: Bagian kode yang mendukung master data dan proteksi akses.
+
 namespace App\Http\Controllers\Admin\Master;
 
 use App\Http\Controllers\Controller;
