@@ -52,10 +52,10 @@ class ForestAreaController extends Controller
 
     public function store(StoreForestAreaRequest $request, CreateForestArea $createForestArea): RedirectResponse
     {
-        $createForestArea->handle($request);
+        $forestArea = $createForestArea->handle($request);
 
         return redirect()
-            ->route('admin.master.forest-areas.index')
+            ->route('admin.master.checkpoints.index', ['kawasan' => $forestArea->id])
             ->with('status', 'Kawasan hutan berhasil ditambahkan.');
     }
 

@@ -163,7 +163,7 @@
 
                 const form = pendingForm;
                 closeModal();
-                if (!form.reportValidity()) {
+                if (!form.noValidate && !form.reportValidity()) {
                     return;
                 }
 
