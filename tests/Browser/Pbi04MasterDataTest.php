@@ -106,9 +106,10 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->type('boundary', $boundary)
                 ->press('Simpan kawasan')
                 ->press('Ya, lanjutkan')
-                ->waitForRoute('admin.master.forest-areas.index')
+                ->waitForRoute('admin.master.checkpoints.index')
                 ->waitForText('Kawasan hutan berhasil ditambahkan.')
-                ->assertSee('Kawasan PBI04 Dusk');
+                ->visitRoute('admin.master.forest-areas.index')
+                ->waitForText('Kawasan PBI04 Dusk');
         });
 
         $area = ForestArea::where('name', 'Kawasan PBI04 Dusk')->firstOrFail();
@@ -147,9 +148,11 @@ class Pbi04MasterDataTest extends DuskTestCase
 
             $browser->type('name', 'Ab')
                 ->type('area_ha', '-5')
-                ->type('boundary', 'invalid-json-text')
-                ->script("document.querySelector('[name=center_lat]').value = '100'; document.querySelector('[name=center_lng]').value = '-200';")
-                ->press('Simpan kawasan')
+                ->type('boundary', 'invalid-json-text');
+
+            $browser->script("document.querySelector('[name=center_lat]').value = '100'; document.querySelector('[name=center_lng]').value = '-200';");
+
+            $browser->press('Simpan kawasan')
                 ->press('Ya, lanjutkan')
                 ->waitForText('Nama kawasan minimal 3 karakter.')
                 ->assertSee('Luas kawasan harus lebih besar dari 0 hektar.')
@@ -172,6 +175,7 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->press('Ya, lanjutkan')
                 ->waitForText('Kawasan hutan berhasil dihapus.')
                 ->assertDontSee('Kawasan Hapus PBI04')
+                ->click('[data-toast-close]')
                 ->select('status', 'terhapus')
                 ->press('Terapkan')
                 ->waitForText('Kawasan Hapus PBI04')
@@ -313,9 +317,11 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->waitForRoute('admin.master.incident-types.index')
                 ->waitForText('Tipe insiden berhasil diperbarui.')
                 ->assertSee('Tipe Insiden PBI04 Diperbarui')
+                ->click('[data-toast-close]')
                 ->click('form[action="'.route('admin.master.incident-types.destroy', $incidentType).'"] button')
                 ->press('Ya, lanjutkan')
                 ->waitForText('Tipe insiden berhasil dihapus.')
+                ->click('[data-toast-close]')
                 ->select('status', 'terhapus')
                 ->press('Terapkan')
                 ->waitForText('Tipe Insiden PBI04 Diperbarui')
