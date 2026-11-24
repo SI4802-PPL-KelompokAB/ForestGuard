@@ -11,6 +11,8 @@ class Incident extends Model
 {
     use HasFactory;
 
+    public const PENDING_VERIFICATION_STATUSES = ['Reported', 'Under Verification'];
+
     protected $fillable = [
         'code',
         'client_uuid',

@@ -68,9 +68,16 @@ class IncidentController extends Controller
             ->with('incident_code', $incident->code);
     }
 
-    public function show(Incident $incident): View
+    public function show(Request $request, Incident $incident): View
     {
-        $incident->load(['incidentType', 'forestArea', 'caseStatus', 'evidences', 'statusHistories.toStatus', 'statusHistories.changedBy']);
+        $incident->load(['caseStatus', 'patrol']);
+        $rangerId = $request->user()->id;
+        $isReporter = $incident->reporter_id === $rangerId;
+        abort_unless($isReporter || ($incident->caseStatus->name !== 'Rejected' && (
+            $incident->patrol?->ranger_id === $rangerId || $incident->assignments()->where('ranger_id', $rangerId)->exists()
+        )), 404);
+
+        $incident->load(['incidentType', 'forestArea', 'evidences', 'statusHistories.fromStatus', 'statusHistories.toStatus', 'statusHistories.changedBy']);
 
         return view('ranger.incidents.show', compact('incident'));
     }

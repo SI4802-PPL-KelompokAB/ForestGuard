@@ -32,6 +32,10 @@ class Pbi08FieldRecordingTest extends TestCase
         $this->seed(RoleSeeder::class);
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-02a, TC-PBI08-02b, TC-PBI08-04.
+     * Kunjungan menyimpan waktu server, koordinat aktual, dan satu titik rute; urutan kunjungan tidak dipaksakan.
+     */
     public function test_visit_updates_the_assignment_with_actual_coordinates_and_one_track_without_enforcing_sequence(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-11-16 03:00:00', 'UTC'));
@@ -68,6 +72,10 @@ class Pbi08FieldRecordingTest extends TestCase
         $this->assertNull($first->fresh()->visited_at);
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-05a, TC-PBI08-07a, TC-PBI08-13a.
+     * Observasi tanpa foto disimpan setelah trim, tidak terduplikasi saat dikirim ulang, dan tetap terbaca sesudah patroli selesai.
+     */
     public function test_valid_observation_without_photo_is_trimmed_deduplicated_and_visible_after_finish(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-11-16 03:00:00', 'UTC'));
@@ -93,6 +101,11 @@ class Pbi08FieldRecordingTest extends TestCase
         $this->actingAs($patrol->creator)->get(route('admin.patrols.show', $patrol))->assertOk()->assertSee('Pohon tumbang di jalur');
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-03b, TC-PBI08-06.
+     * Input observasi yang tidak valid mengembalikan HTTP 422 dan tidak membuat data baru; field salah ditentukan dataset.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('invalidObservations')]
     public function test_invalid_observation_returns_422_and_does_not_write(string $field, mixed $value): void
     {
@@ -128,6 +141,10 @@ class Pbi08FieldRecordingTest extends TestCase
         ];
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-05b.
+     * Batas minimal 5 karakter dan nilai batas koordinat yang sah diterima.
+     */
     public function test_minimum_five_characters_and_coordinate_boundaries_are_accepted(): void
     {
         $patrol = Patrol::factory()->inProgress()->create();
@@ -136,6 +153,11 @@ class Pbi08FieldRecordingTest extends TestCase
         $this->assertDatabaseHas('observations', ['description' => 'abcde', 'latitude' => -90, 'longitude' => 180]);
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-09.
+     * Admin, Citizen, dan Ranger lain tidak dapat mencatat data pada patroli yang bukan haknya.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('inaccessibleRoles')]
     public function test_other_roles_and_rangers_cannot_record(string $role): void
     {
@@ -158,6 +180,10 @@ class Pbi08FieldRecordingTest extends TestCase
         return ['admin' => ['admin'], 'citizen' => ['citizen'], 'another ranger' => ['ranger']];
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-09.
+     * Pengguna yang belum login dan Ranger nonaktif ditolak saat mencoba mencatat data lapangan.
+     */
     public function test_guest_and_inactive_ranger_cannot_record(): void
     {
         $patrol = Patrol::factory()->inProgress()->create();
@@ -171,6 +197,10 @@ class Pbi08FieldRecordingTest extends TestCase
         $this->assertNull($planned->fresh()->visited_at);
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-03b, TC-PBI08-09.
+     * Checkpoint harus termasuk penugasan patroli yang dipilih dan koordinat kunjungan wajib valid.
+     */
     public function test_checkpoint_must_belong_to_the_open_patrol_and_coordinates_are_required(): void
     {
         $patrol = Patrol::factory()->inProgress()->create();
@@ -187,6 +217,11 @@ class Pbi08FieldRecordingTest extends TestCase
         $this->assertDatabaseCount('patrol_tracks', 0);
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-10a, TC-PBI08-10b.
+     * Patroli berstatus Ditugaskan atau Selesai menolak pencatatan checkpoint maupun observasi.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('closedStatuses')]
     public function test_assigned_and_completed_patrols_reject_both_record_types(string $state): void
     {
@@ -205,6 +240,10 @@ class Pbi08FieldRecordingTest extends TestCase
         return ['assigned' => ['assigned'], 'completed' => ['completed']];
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-08a, TC-PBI08-07a.
+     * Foto opsional disimpan melalui penyimpanan bukti privat; pengiriman ulang tidak menduplikasi observasi atau bukti.
+     */
     public function test_optional_photo_uses_private_evidence_pipeline_and_does_not_duplicate_on_retry(): void
     {
         Storage::fake('private');
@@ -226,6 +265,10 @@ class Pbi08FieldRecordingTest extends TestCase
         $this->actingAs(User::factory()->ranger()->create())->get(route('evidence.show', $evidence))->assertForbidden();
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-08b.
+     * Berkas foto tidak valid atau terlalu besar menolak seluruh observasi tanpa menyimpan data parsial.
+     */
     public function test_invalid_and_oversized_photos_reject_the_entire_observation(): void
     {
         Storage::fake('private');
@@ -243,6 +286,10 @@ class Pbi08FieldRecordingTest extends TestCase
         $this->assertSame([], Storage::disk('private')->allFiles());
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-12.
+     * Kegagalan penyimpanan foto membatalkan observasi beserta bukti yang terkait.
+     */
     public function test_storage_failure_rolls_back_observation_and_evidence(): void
     {
         Storage::fake('private');
@@ -260,6 +307,10 @@ class Pbi08FieldRecordingTest extends TestCase
         $this->assertSame([], $disk->allFiles());
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-12.
+     * Kegagalan database setelah upload menghapus berkas yang telanjur tersimpan dan membatalkan data observasi/bukti.
+     */
     public function test_database_failure_after_upload_removes_the_file_and_rolls_back(): void
     {
         Storage::fake('private');
@@ -280,6 +331,10 @@ class Pbi08FieldRecordingTest extends TestCase
         $this->assertSame([], Storage::disk('private')->allFiles());
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-14a, TC-PBI08-14b.
+     * Temuan mengisi awal form laporan insiden tanpa otomatis membuat laporan; akses Ranger lain ditolak.
+     */
     public function test_observation_context_prefills_existing_incident_form_without_creating_a_report_and_rejects_another_owner(): void
     {
         $patrol = Patrol::factory()->inProgress()->create();
@@ -293,6 +348,10 @@ class Pbi08FieldRecordingTest extends TestCase
         $this->actingAs(User::factory()->ranger()->create())->get($url)->assertNotFound();
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-07b, TC-PBI08-13b.
+     * UUID observasi tidak boleh dipakai pada patroli lain dan catatan ditampilkan dengan aman tanpa menjalankan skrip.
+     */
     public function test_observation_uuid_cannot_be_reused_for_another_patrol_and_notes_are_escaped(): void
     {
         $patrol = Patrol::factory()->inProgress()->create();

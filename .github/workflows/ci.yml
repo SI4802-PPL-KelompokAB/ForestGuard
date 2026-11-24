@@ -73,6 +73,7 @@ jobs:
           SESSION_DRIVER=database
           CACHE_STORE=database
           QUEUE_CONNECTION=sync
+          EVIDENCE_DISK=local
           EOF
 
       - name: Install NPM Dependencies & Build Assets
