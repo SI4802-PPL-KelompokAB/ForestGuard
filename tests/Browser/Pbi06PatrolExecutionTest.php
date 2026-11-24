@@ -23,6 +23,10 @@ class Pbi06PatrolExecutionTest extends DuskTestCase
         Artisan::call('migrate:fresh');
     }
 
+    /**
+     * Test case Jira: TC-PBI06-04a.
+     * TC-PBI06-04a: Tugas kedua ditolak saat ada patroli aktif; tautan menuju tugas aktif tersedia.
+     */
     #[TestDox('TC-PBI06-04a: a second active patrol rejects start from an already open page')]
     public function test_start_from_stale_page_rejects_another_active_patrol_and_recovers(): void
     {
@@ -44,6 +48,10 @@ class Pbi06PatrolExecutionTest extends DuskTestCase
         $this->assertSame(PatrolStatus::InProgress, $patrol->fresh()->status);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-06b.
+     * TC-PBI06-06b: Start/finish pada Selesai ditolak tanpa menimpa waktu.
+     */
     #[TestDox('TC-PBI06-06b: stale finish confirmation preserves the completion saved elsewhere')]
     public function test_finish_from_stale_page_preserves_completion_saved_elsewhere(): void
     {
@@ -61,6 +69,15 @@ class Pbi06PatrolExecutionTest extends DuskTestCase
         });
     }
 
+    /**
+     * Test case Jira: TC-PBI06-02a, TC-PBI06-03, TC-PBI06-05a, TC-PBI06-05b, TC-PBI06-05c, TC-PBI06-11a.
+     * TC-PBI06-02a: Start mencatat waktu server dan mengubah patroli yang sama menjadi Berlangsung.
+     * TC-PBI06-03: Reload dan login ulang mempertahankan patroli, waktu mulai dan durasi.
+     * TC-PBI06-05a: Konfirmasi akhir menghasilkan Selesai dengan waktu/durasi benar.
+     * TC-PBI06-05b: Checkpoint belum lengkap tetap boleh selesai tanpa kunjungan palsu.
+     * TC-PBI06-05c: Batal dan Escape menutup dialog tanpa mutasi.
+     * TC-PBI06-11a: Durasi akhir positif dan timestamp tetap setelah waktu berlalu; hasil hanya-baca.
+     */
     #[TestDox('TC-PBI06-02a, TC-PBI06-03, TC-PBI06-05a, TC-PBI06-05b, TC-PBI06-05c, TC-PBI06-11a: browser lifecycle and confirmation')]
     public function test_ranger_starts_reloads_and_confirms_finish_with_unvisited_checkpoints(): void
     {
@@ -96,6 +113,10 @@ class Pbi06PatrolExecutionTest extends DuskTestCase
         $this->assertNull($patrol->patrolCheckpoints->sole()->visited_at);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-04a.
+     * TC-PBI06-04a: Tugas kedua ditolak saat ada patroli aktif; tautan menuju tugas aktif tersedia.
+     */
     #[TestDox('TC-PBI06-04a: browser links a blocked task to its active patrol')]
     public function test_other_assignment_links_to_current_active_patrol(): void
     {
@@ -113,6 +134,10 @@ class Pbi06PatrolExecutionTest extends DuskTestCase
         $this->assertSame(PatrolStatus::Assigned, $other->fresh()->status);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-09b.
+     * TC-PBI06-09b: Respons hilang setelah start dipulihkan tanpa mengirim POST start kedua.
+     */
     #[TestDox('TC-PBI06-09b: a lost response is reconciled without a second start')]
     public function test_lost_server_confirmation_does_not_claim_success_and_retry_reads_latest_state(): void
     {
@@ -153,6 +178,10 @@ JS);
         });
     }
 
+    /**
+     * Test case Jira: TC-PBI06-03.
+     * TC-PBI06-03: Reload dan login ulang mempertahankan patroli, waktu mulai dan durasi.
+     */
     #[TestDox('TC-PBI06-03: signing in again restores the existing patrol and elapsed duration')]
     public function test_logging_in_again_restores_the_existing_active_patrol(): void
     {
@@ -176,6 +205,11 @@ JS);
         $this->assertDatabaseCount('patrols', 1);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-09a.
+     * TC-PBI06-09a: Kegagalan jaringan/timeout sebelum mutasi tidak memberi sukses palsu; retry membaca status dahulu.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('connectionFailures')]
     #[TestDox('TC-PBI06-09a: a $failure before the mutation cannot claim success')]
     public function test_connection_failure_before_mutation_can_retry_after_reading_current_state(string $failure): void
@@ -221,6 +255,10 @@ JS);
         $this->assertDatabaseCount('patrols', 1);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-11c.
+     * TC-PBI06-11c: Empty state, keyboard/dialog, layout 360/1280 px, dan pencegahan mutasi ganda saat pending.
+     */
     #[TestDox('TC-PBI06-11c: pending server confirmation prevents duplicate browser mutations')]
     public function test_pending_confirmation_disables_controls_and_ignores_duplicate_submissions(): void
     {
@@ -257,6 +295,11 @@ JS);
         $this->assertSame(PatrolStatus::InProgress, $patrol->fresh()->status);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-11c.
+     * TC-PBI06-11c: Empty state, keyboard/dialog, layout 360/1280 px, dan pencegahan mutasi ganda saat pending.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('viewportWidths')]
     #[TestDox('TC-PBI06-11c: empty state and keyboard confirmation work at width $width')]
     public function test_empty_state_and_keyboard_confirmation_at_each_viewport(int $width): void

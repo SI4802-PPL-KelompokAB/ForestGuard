@@ -16,6 +16,10 @@ class Pbi06PatrolConcurrencyTest extends TestCase
 {
     use DatabaseMigrations;
 
+    /**
+     * Test case Jira: TC-PBI06-04b.
+     * TC-PBI06-04b: Dua proses/koneksi MySQL menghasilkan tepat satu start sukses.
+     */
     #[TestDox('TC-PBI06-04b: separate MySQL processes allow exactly one concurrent start')]
     public function test_two_concurrent_starts_on_separate_connections_allow_exactly_one_active_patrol(): void
     {
