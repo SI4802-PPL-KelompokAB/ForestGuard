@@ -7,11 +7,16 @@
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
                 <h1 class="text-2xl font-bold text-forest-950">{{ $incident->code }}</h1>
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-800">
                     Status: {{ $incident->caseStatus?->name }}
                 </span>
+                @if (in_array($incident->caseStatus?->name, \App\Models\Incident::PENDING_VERIFICATION_STATUSES, true))
+                    <span dusk="suspected-status" class="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Dugaan</span>
+                @elseif ($incident->caseStatus?->name === 'Rejected')
+                    <span class="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800">Ditolak</span>
+                @endif
                 @if ($incident->riskLevel)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
                         Risiko: {{ $incident->riskLevel->name }}
@@ -34,7 +39,7 @@
     @endif
 
     @if ($errors->any())
-        <div class="rounded-lg bg-red-50 p-4 border border-red-200">
+        <div role="alert" class="rounded-lg bg-red-50 p-4 border border-red-200">
             <h2 class="text-sm font-semibold text-red-800">Gagal memperbarui status:</h2>
             <ul class="mt-2 list-disc list-inside text-xs text-red-700 space-y-1">
                 @foreach ($errors->all() as $error)
@@ -62,7 +67,7 @@
                     <h3 class="text-sm font-bold text-amber-900">Kasus Baru Membutuhkan Verifikasi</h3>
                     <p class="text-xs text-amber-700">Mulai proses peninjauan bukti dan lokasi untuk memeriksa kebenaran laporan.</p>
                 </div>
-                <form method="POST" action="{{ route('admin.incidents.update-status', $incident) }}">
+                <form method="POST" action="{{ route('admin.incidents.update-status', $incident) }}" data-verification-form>
                     @csrf
                     <input type="hidden" name="to_status" value="Under Verification">
                     <button type="submit" class="px-4 py-2 bg-amber-600 text-white font-semibold text-xs rounded-lg hover:bg-amber-700 shadow-sm transition">
@@ -75,14 +80,17 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             {{-- Form Terverifikasi --}}
             <x-card class="border-blue-200 bg-blue-50/50">
-                <h3 class="text-sm font-bold text-blue-950 mb-2">1. Tetapkan Hasil: Terverifikasi (Verified)</h3>
-                <p class="text-xs text-slate-600 mb-3">Tentukan tingkat risiko untuk melanjutkan kasus ke tahap penugasan.</p>
-                <form method="POST" action="{{ route('admin.incidents.update-status', $incident) }}" class="space-y-3">
+                <h3 class="text-sm font-bold text-blue-950 mb-2">Terverifikasi</h3>
+                @if ($riskLevels->isEmpty())
+                    <p class="text-xs text-slate-700 mb-3">Belum ada tingkat risiko aktif. Aktifkan tingkat risiko di Data Master untuk memverifikasi laporan.</p>
+                @endif
+                <form method="POST" action="{{ route('admin.incidents.update-status', $incident) }}" class="space-y-3" data-verification-form>
                     @csrf
                     <input type="hidden" name="to_status" value="Verified">
+                    <input type="hidden" name="risk_snapshot" value="{{ $riskSnapshot }}">
                     <div>
                         <label for="risk_level_id" class="block text-xs font-semibold text-slate-700 mb-1">Tingkat Risiko <span class="text-red-500">*</span></label>
-                        <select name="risk_level_id" id="risk_level_id" class="w-full text-xs rounded-lg border-slate-300" required>
+                        <select name="risk_level_id" id="risk_level_id" class="w-full text-xs rounded-lg border-slate-300" required @disabled($riskLevels->isEmpty())>
                             <option value="">-- Pilih Tingkat Risiko --</option>
                             @foreach ($riskLevels as $rl)
                                 <option value="{{ $rl->id }}" {{ old('risk_level_id') == $rl->id ? 'selected' : '' }}>
@@ -90,12 +98,15 @@
                                 </option>
                             @endforeach
                         </select>
+                        @error('risk_level_id')
+                            <p class="mt-1 text-xs text-red-700">{{ $message }}</p>
+                        @enderror
                     </div>
                     <div>
                         <label for="note" class="block text-xs font-semibold text-slate-700 mb-1">Catatan Verifikasi</label>
-                        <input type="text" name="note" id="note" placeholder="Catatan opsional..." class="w-full text-xs rounded-lg border-slate-300">
+                        <input type="text" name="note" id="note" value="{{ old('note') }}" maxlength="1000" class="w-full text-xs rounded-lg border-slate-300">
                     </div>
-                    <button type="submit" class="w-full py-2 bg-blue-600 text-white font-semibold text-xs rounded-lg hover:bg-blue-700 transition">
+                    <button type="submit" @disabled($riskLevels->isEmpty()) class="w-full py-2 bg-blue-600 text-white font-semibold text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
                         Verifikasi Laporan
                     </button>
                 </form>
@@ -103,14 +114,17 @@
 
             {{-- Form Tolak Laporan --}}
             <x-card class="border-red-200 bg-red-50/50">
-                <h3 class="text-sm font-bold text-red-950 mb-2">2. Tetapkan Hasil: Tolak Laporan (Rejected)</h3>
-                <p class="text-xs text-slate-600 mb-3">Jika laporan tidak terbukti atau fiktif, tolak laporan dengan menyertakan alasan.</p>
-                <form method="POST" action="{{ route('admin.incidents.update-status', $incident) }}" class="space-y-3">
+                <h3 class="text-sm font-bold text-red-950 mb-2">Tolak laporan</h3>
+                <p class="text-xs text-slate-600 mb-3">Alasan penolakan akan ditampilkan kepada pelapor.</p>
+                <form method="POST" action="{{ route('admin.incidents.update-status', $incident) }}" class="space-y-3" data-verification-form>
                     @csrf
                     <input type="hidden" name="to_status" value="Rejected">
                     <div>
                         <label for="reject_reason" class="block text-xs font-semibold text-slate-700 mb-1">Alasan Penolakan <span class="text-red-500">*</span> (min 10 karakter)</label>
-                        <textarea name="reject_reason" id="reject_reason" rows="3" placeholder="Jelaskan alasan penolakan secara jelas..." class="w-full text-xs rounded-lg border-slate-300" required>{{ old('reject_reason') }}</textarea>
+                        <textarea name="reject_reason" id="reject_reason" rows="3" minlength="10" maxlength="1000" class="w-full text-xs rounded-lg border-slate-300" required>{{ old('reject_reason') }}</textarea>
+                        @error('reject_reason')
+                            <p class="mt-1 text-xs text-red-700">{{ $message }}</p>
+                        @enderror
                     </div>
                     <button type="submit" class="w-full py-2 bg-red-600 text-white font-semibold text-xs rounded-lg hover:bg-red-700 transition">
                         Tolak Laporan Ini
@@ -172,7 +186,17 @@
                     </div>
                     <div>
                         <dt class="text-xs text-slate-500 uppercase tracking-wider">Koordinat GPS</dt>
-                        <dd class="mt-1 font-mono text-xs text-slate-800">{{ $incident->latitude }}, {{ $incident->longitude }}</dd>
+                        <dd class="mt-1 font-mono text-xs text-slate-800">
+                            @if ($incident->latitude !== null && $incident->longitude !== null)
+                                {{ $incident->latitude }}, {{ $incident->longitude }}
+                            @else
+                                Koordinat lokasi tidak tersedia.
+                            @endif
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-slate-500 uppercase tracking-wider">Waktu Pelaporan</dt>
+                        <dd class="mt-1 text-slate-800">{{ $incident->created_at?->timezone('Asia/Jakarta')->format('d M Y, H:i') }} WIB</dd>
                     </div>
                     <div class="sm:col-span-2">
                         <dt class="text-xs text-slate-500 uppercase tracking-wider">Uraian Kejadian</dt>
@@ -199,7 +223,9 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     @forelse ($incident->evidences as $evidence)
                         <div class="overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-                            <img src="{{ asset('storage/' . $evidence->file_path) }}" alt="Bukti Foto" class="w-full h-48 object-cover">
+                            <img src="{{ route('evidence.show', $evidence) }}" alt="Bukti Foto" class="w-full h-48 object-cover"
+                                 onerror="this.hidden = true; this.nextElementSibling.hidden = false;">
+                            <p class="p-3 text-sm text-slate-600" hidden>Foto bukti tidak dapat dimuat.</p>
                             <div class="p-2 text-xs text-slate-500 bg-white">
                                 Diambil: {{ $evidence->captured_at?->format('d M Y, H:i') }} WIB
                             </div>
@@ -219,5 +245,14 @@
         </div>
     </div>
 </div>
+<script>
+    const verificationForms = document.querySelectorAll('[data-verification-form]');
+    verificationForms.forEach(form => form.addEventListener('submit', event => {
+        verificationForms.forEach(otherForm => {
+            otherForm.querySelector('button[type="submit"]').disabled = true;
+        });
+        event.submitter.textContent = 'Menyimpan…';
+    }));
+</script>
 @endsection
 

@@ -217,7 +217,7 @@ class Pbi09EvidenceUploadTest extends DuskTestCase
      */
     private function persistenceSnapshot(): array
     {
-        $files = Storage::disk('public')->allFiles('evidences/incidents');
+        $files = Storage::disk(config('filesystems.evidence_disk'))->allFiles('evidences/incident-reports');
         sort($files, SORT_STRING);
 
         return [

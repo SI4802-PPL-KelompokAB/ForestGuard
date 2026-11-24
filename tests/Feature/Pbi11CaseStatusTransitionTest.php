@@ -143,9 +143,11 @@ class Pbi11CaseStatusTransitionTest extends TestCase
         $this->assertSame($this->underVerification->id, $incident->fresh()->case_status_id);
 
         // 2. With risk_level_id -> must succeed
+        $detail = $this->get(route('admin.incidents.show', $incident));
         $responsePass = $this->actingAs($admin)->post(route('admin.incidents.update-status', $incident), [
             'to_status' => 'Verified',
             'risk_level_id' => $riskLevel->id,
+            'risk_snapshot' => $detail->viewData('riskSnapshot'),
             'note' => 'Laporan terkonfirmasi valid.',
         ]);
 

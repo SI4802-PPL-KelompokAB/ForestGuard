@@ -25,6 +25,13 @@
         </div>
     @endif
 
+    @if ($incident->caseStatus?->name === 'Rejected')
+        <x-card class="bg-red-50 border-red-200">
+            <h2 class="text-sm font-bold text-red-800">Alasan penolakan</h2>
+            <p class="mt-1 whitespace-pre-line text-sm text-red-700">{{ $incident->reject_reason ?: 'Laporan ini belum dapat ditindaklanjuti.' }}</p>
+        </x-card>
+    @endif
+
     {{-- Indikator Progres Status --}}
     <x-card>
         <h2 class="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Tahapan Kasus</h2>
@@ -81,7 +88,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     @forelse ($incident->evidences as $evidence)
                         <div class="overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-                            <img src="{{ asset('storage/' . $evidence->file_path) }}" alt="Bukti Foto" class="w-full h-48 object-cover">
+                            <img src="{{ route('evidence.show', $evidence) }}" alt="Bukti Foto" class="w-full h-48 object-cover">
                             <div class="p-2 text-xs text-slate-500 bg-white">
                                 Diambil: {{ $evidence->captured_at?->format('d M Y, H:i') }} WIB
                             </div>

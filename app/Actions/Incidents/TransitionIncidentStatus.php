@@ -5,8 +5,11 @@ namespace App\Actions\Incidents;
 use App\Exceptions\InvalidStatusTransitionException;
 use App\Models\CaseStatus;
 use App\Models\Incident;
+use App\Models\RiskLevel;
 use App\Models\StatusHistory;
 use App\Models\User;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -36,6 +39,9 @@ class TransitionIncidentStatus
     public function handle(User $actor, Incident $incident, string $targetStatusName, array $data = []): Incident
     {
         abort_unless($actor->isUsable(), 403, 'Akun pengguna tidak aktif.');
+        if (in_array($targetStatusName, ['Under Verification', 'Verified', 'Rejected'], true)) {
+            abort_unless($actor->isAdmin(), 403, 'Hanya Administrator yang dapat memverifikasi laporan.');
+        }
 
         return DB::transaction(function () use ($actor, $incident, $targetStatusName, $data): Incident {
             $lockedIncident = Incident::with(['caseStatus'])->whereKey($incident->id)->lockForUpdate()->firstOrFail();
@@ -62,13 +68,16 @@ class TransitionIncidentStatus
             $this->validateRolePermission($actor, $lockedIncident, $currentStatus->name, $targetStatusName);
 
             // Validate Specific Transition Requirements
+            if ($targetStatusName === 'Rejected' && is_string($data['reject_reason'] ?? null)) {
+                $data['reject_reason'] = trim($data['reject_reason']);
+            }
             $this->validateRequirements($targetStatusName, $data);
 
             // Apply updates to incident
             $lockedIncident->case_status_id = $targetStatus->id;
 
-            if ($targetStatusName === 'Verified' && ! empty($data['risk_level_id'])) {
-                $lockedIncident->risk_level_id = $data['risk_level_id'];
+            if ($targetStatusName === 'Verified') {
+                $lockedIncident->risk_level_id = $this->verificationRisk($data)->id;
             }
 
             if ($targetStatusName === 'Rejected') {
@@ -83,7 +92,11 @@ class TransitionIncidentStatus
             $lockedIncident->save();
 
             // Create immutable status history record
-            $note = $data['note'] ?? $data['reject_reason'] ?? $data['resolution_note'] ?? null;
+            $note = match ($targetStatusName) {
+                'Rejected' => $data['reject_reason'],
+                'Resolved' => $data['note'] ?? $data['resolution_note'],
+                default => $data['note'] ?? null,
+            };
             StatusHistory::create([
                 'incident_id' => $lockedIncident->id,
                 'from_status_id' => $currentStatus->id,
@@ -92,6 +105,17 @@ class TransitionIncidentStatus
                 'note' => $note,
                 'changed_at' => now(),
             ]);
+
+            if (in_array($targetStatusName, ['Verified', 'Rejected'], true)) {
+                DB::afterCommit(fn () => rescue(fn () => $lockedIncident->reporter->appNotifications()->create([
+                    'type' => 'incident.verification-decided',
+                    'data' => [
+                        'incident_id' => $lockedIncident->id,
+                        'code' => $lockedIncident->code,
+                        'status' => $targetStatusName,
+                    ],
+                ])));
+            }
 
             return $lockedIncident->fresh(['caseStatus', 'statusHistories', 'riskLevel']);
         });
@@ -133,8 +157,8 @@ class TransitionIncidentStatus
     protected function validateRequirements(string $targetStatus, array $data): void
     {
         if ($targetStatus === 'Rejected') {
-            $reason = trim((string) ($data['reject_reason'] ?? ''));
-            if (empty($reason)) {
+            $reason = $data['reject_reason'] ?? null;
+            if (! is_string($reason) || $reason === '') {
                 throw ValidationException::withMessages([
                     'reject_reason' => ['Alasan penolakan laporan wajib diisi.'],
                 ]);
@@ -144,12 +168,9 @@ class TransitionIncidentStatus
                     'reject_reason' => ['Alasan penolakan minimal harus 10 karakter.'],
                 ]);
             }
-        }
-
-        if ($targetStatus === 'Verified') {
-            if (empty($data['risk_level_id'])) {
+            if (mb_strlen($reason) > 1000) {
                 throw ValidationException::withMessages([
-                    'risk_level_id' => ['Tingkat risiko wajib ditentukan saat verifikasi laporan.'],
+                    'reject_reason' => ['Alasan penolakan maksimal 1000 karakter.'],
                 ]);
             }
         }
@@ -167,5 +188,34 @@ class TransitionIncidentStatus
                 ]);
             }
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function verificationRisk(array $data): RiskLevel
+    {
+        $riskId = filter_var($data['risk_level_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $risk = $riskId ? RiskLevel::active()->sharedLock()->find($riskId) : null;
+
+        if (! $risk) {
+            throw ValidationException::withMessages(['risk_level_id' => 'Pilih tingkat risiko yang aktif.']);
+        }
+
+        if (isset($data['risk_snapshot'])) {
+            try {
+                $options = json_decode(Crypt::decryptString($data['risk_snapshot']), true);
+            } catch (DecryptException) {
+                $options = [];
+            }
+
+            if (($options[$riskId] ?? null) !== $risk->attributesToArray()) {
+                throw ValidationException::withMessages([
+                    'risk_level_id' => 'Pilihan risiko sudah berubah. Pilih kembali tingkat risiko dari daftar terbaru.',
+                ]);
+            }
+        }
+
+        return $risk;
     }
 }

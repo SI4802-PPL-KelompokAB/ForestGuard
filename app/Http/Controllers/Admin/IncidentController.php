@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Incidents\TransitionIncidentStatus;
+use App\Exceptions\InvalidStatusTransitionException;
 use App\Http\Controllers\Controller;
 use App\Models\CaseStatus;
 use App\Models\Incident;
 use App\Models\RiskLevel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\View\View;
 
 class IncidentController extends Controller
@@ -20,7 +22,9 @@ class IncidentController extends Controller
         $query = Incident::with(['incidentType', 'forestArea', 'caseStatus', 'reporter'])
             ->latest('occurred_at');
 
-        if ($statusFilter) {
+        if ($statusFilter === 'needs-verification') {
+            $query->whereHas('caseStatus', fn ($q) => $q->whereIn('name', Incident::PENDING_VERIFICATION_STATUSES));
+        } elseif (is_string($statusFilter) && $statusFilter !== '') {
             $query->whereHas('caseStatus', fn ($q) => $q->where('name', $statusFilter));
         }
 
@@ -44,29 +48,39 @@ class IncidentController extends Controller
             'statusHistories.changedBy',
         ]);
 
-        $riskLevels = RiskLevel::orderBy('sort_order')->get();
-        $statuses = CaseStatus::orderBy('sequence')->get();
+        $riskLevels = $incident->caseStatus->name === 'Under Verification'
+            ? RiskLevel::active()->orderBy('sort_order')->orderBy('id')->get()
+            : collect();
+        $riskSnapshot = $riskLevels->isNotEmpty()
+            ? Crypt::encryptString($riskLevels->keyBy('id')->toJson())
+            : null;
 
-        return view('admin.incidents.show', compact('incident', 'riskLevels', 'statuses'));
+        return view('admin.incidents.show', compact('incident', 'riskLevels', 'riskSnapshot'));
     }
 
     public function updateStatus(Request $request, Incident $incident, TransitionIncidentStatus $action): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'to_status' => ['required', 'string'],
-            'risk_level_id' => ['nullable', 'integer', 'exists:risk_levels,id'],
-            'reject_reason' => ['nullable', 'string'],
+            'risk_level_id' => ['nullable', 'integer'],
+            'risk_snapshot' => ['nullable', 'string'],
+            'reject_reason' => ['nullable', 'string', 'max:1000'],
             'resolution_note' => ['nullable', 'string'],
-            'note' => ['nullable', 'string'],
+            'note' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $action->handle(
-            $request->user(),
-            $incident,
-            $request->input('to_status'),
-            $request->only(['risk_level_id', 'reject_reason', 'resolution_note', 'note'])
-        );
+        $validated['risk_snapshot'] ??= '';
 
-        return back()->with('status', 'Status kasus berhasil diperbarui.');
+        try {
+            $action->handle($request->user(), $incident, $validated['to_status'], $validated);
+        } catch (InvalidStatusTransitionException) {
+            $message = 'Status kasus sudah berubah atau aksi ini tidak tersedia untuk status saat ini.';
+
+            abort_if($request->expectsJson(), 409, $message);
+
+            return to_route('admin.incidents.show', $incident)->withErrors(['to_status' => $message]);
+        }
+
+        return to_route('admin.incidents.show', $incident)->with('status', 'Status kasus berhasil diperbarui.');
     }
 }
