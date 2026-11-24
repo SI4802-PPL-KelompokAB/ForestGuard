@@ -106,8 +106,8 @@ class Pbi10IncidentReportingTest extends TestCase
         $this->assertNull($evidence->observation_id);
         $this->assertNull($evidence->update_id);
         $this->assertEquals(-6.7574, (float) $evidence->latitude);
-        Storage::disk('private')->assertExists($evidence->file_path);
-        Storage::disk('public')->assertMissing($evidence->file_path);
+        $this->assertSame([$evidence->file_path], Storage::disk('private')->allFiles());
+        $this->assertSame([], Storage::disk('public')->allFiles());
 
         // 3. Assert Status Histories Table
         $history = StatusHistory::sole();
