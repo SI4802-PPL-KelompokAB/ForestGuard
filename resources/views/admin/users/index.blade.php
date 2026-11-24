@@ -1,4 +1,5 @@
 @extends('layouts.app')
+{{-- PBI-03: Tampilan manajemen pengguna Admin. --}}
 
 @section('title', 'Pengguna')
 
@@ -77,7 +78,8 @@
                             <td class="px-4 py-3">
                                 <div class="flex flex-wrap gap-2">
                                     @if ($managedUser->trashed())
-                                        <form method="POST" action="{{ route('admin.users.restore', $managedUser) }}">
+                                        <form method="POST" action="{{ route('admin.users.restore', $managedUser) }}"
+                                              data-confirm="Apakah Anda yakin ingin memulihkan akun ini?">
                                             @csrf
                                             <button type="submit" class="text-sm font-medium text-forest-700 hover:underline">Pulihkan</button>
                                         </form>
@@ -85,7 +87,7 @@
                                         <a href="{{ route('admin.users.edit', $managedUser) }}" class="text-sm font-medium text-forest-700 hover:underline">Ubah</a>
                                         @if (auth()->id() !== $managedUser->id)
                                             <form method="POST" action="{{ route('admin.users.destroy', $managedUser) }}"
-                                                  onsubmit="return confirm('Hapus pengguna ini? Akun dapat dipulihkan nanti.')">
+                                                  data-confirm="Apakah Anda yakin ingin menghapus pengguna ini? Akun dapat dipulihkan nanti.">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="text-sm font-medium text-red-700 hover:underline">Hapus</button>

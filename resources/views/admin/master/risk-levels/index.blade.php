@@ -1,4 +1,5 @@
 @extends('layouts.app')
+{{-- PBI-04: Tampilan halaman master data Admin. --}}
 
 @section('title', 'Data Master - Tingkat Risiko')
 
@@ -68,7 +69,7 @@
                                     <a href="{{ route('admin.master.risk-levels.edit', $risk) }}" class="text-sm font-medium text-forest-700 hover:underline">Ubah</a>
                                     
                                     <form method="POST" action="{{ route('admin.master.risk-levels.toggle', $risk) }}"
-                                          onsubmit="return confirm('{{ $risk->is_active ? 'Nonaktifkan tingkat risiko ini? Risiko yang nonaktif tidak akan muncul di form laporan baru.' : 'Aktifkan kembali tingkat risiko ini?' }}')">
+                                          data-confirm="{{ $risk->is_active ? 'Apakah Anda yakin ingin menonaktifkan tingkat risiko ini? Risiko yang nonaktif tidak akan muncul di form laporan baru.' : 'Apakah Anda yakin ingin mengaktifkan kembali tingkat risiko ini?' }}">
                                         @csrf
                                         <button type="submit" class="text-sm font-medium {{ $risk->is_active ? 'text-amber-700 hover:underline' : 'text-emerald-700 hover:underline' }}">
                                             {{ $risk->is_active ? 'Nonaktifkan' : 'Aktifkan' }}

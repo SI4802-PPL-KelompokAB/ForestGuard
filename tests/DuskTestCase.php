@@ -87,6 +87,22 @@ abstract class DuskTestCase extends BaseTestCase
                 ->press('Masuk')
                 ->waitForRoute('citizen.home');
         });
+
+        Browser::macro('slow', function (?int $ms = null) {
+            /** @var Browser $this */
+            $enabled = env('DUSK_SLOW_MODE') ?? $_ENV['DUSK_SLOW_MODE'] ?? $_SERVER['DUSK_SLOW_MODE'] ?? false;
+            if ($enabled === 'true' || $enabled === true || $enabled === '1' || $enabled === 1) {
+                $delay = $ms ?? (int) (env('DUSK_SLOW_MS') ?? $_ENV['DUSK_SLOW_MS'] ?? $_SERVER['DUSK_SLOW_MS'] ?? 1000);
+                $this->pause($delay);
+            }
+
+            return $this;
+        });
+    }
+
+    public function slow(Browser $browser, ?int $ms = null): Browser
+    {
+        return $browser->slow($ms);
     }
 
     public function loginAsAdmin(Browser $browser): Browser

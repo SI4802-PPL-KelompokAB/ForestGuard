@@ -30,6 +30,13 @@ class Pbi07PatrolTrackTest extends DuskTestCase
             'recorded_at' => now('UTC')->toISOString(),
         ];
 
+        $this->browse(function (Browser $browser) use ($patrol): void {
+            $browser->logout()
+                ->visitRoute('ranger.patrols.tracks.index', $patrol)
+                ->slow()
+                ->assertRouteIs('login');
+        });
+
         $this->postJson(route('ranger.patrols.tracks.store', $patrol), $payload)
             ->assertUnauthorized();
     }
@@ -47,6 +54,14 @@ class Pbi07PatrolTrackTest extends DuskTestCase
             'longitude' => 107.619123,
             'recorded_at' => now('UTC')->toISOString(),
         ];
+
+        $this->browse(function (Browser $browser) use ($citizen, $patrol): void {
+            $browser->loginAs($citizen)
+                ->visit('/ranger/patroli/'.$patrol->id)
+                ->slow()
+                ->assertSee('403')
+                ->assertSee('Akses ditolak');
+        });
 
         // Citizen cannot record track (403 Forbidden)
         $this->actingAs($citizen)
@@ -72,6 +87,14 @@ class Pbi07PatrolTrackTest extends DuskTestCase
             'longitude' => 107.619123,
         ];
 
+        $this->browse(function (Browser $browser) use ($assignedPatrol): void {
+            $browser->loginAs($assignedPatrol->ranger)
+                ->visitRoute('ranger.patrols.show', $assignedPatrol)
+                ->slow()
+                ->assertSee('Ditugaskan')
+                ->assertMissing('[data-gps-indicator]');
+        });
+
         $this->actingAs($assignedPatrol->ranger)
             ->postJson(route('ranger.patrols.tracks.store', $assignedPatrol), $payload)
             ->assertConflict()
@@ -88,6 +111,13 @@ class Pbi07PatrolTrackTest extends DuskTestCase
     {
         $this->seed(RoleSeeder::class);
         $patrol = Patrol::factory()->inProgress()->create();
+
+        $this->browse(function (Browser $browser) use ($patrol): void {
+            $browser->loginAs($patrol->ranger)
+                ->visitRoute('ranger.patrols.show', $patrol)
+                ->slow()
+                ->assertPresent('#patrol-map');
+        });
 
         $this->actingAs($patrol->ranger)
             ->postJson(route('ranger.patrols.tracks.store', $patrol), [
@@ -125,6 +155,14 @@ class Pbi07PatrolTrackTest extends DuskTestCase
             'longitude' => 107.6191230,
         ]);
 
+        $this->browse(function (Browser $browser) use ($patrol): void {
+            $browser->loginAs($patrol->ranger)
+                ->visitRoute('ranger.patrols.show', $patrol)
+                ->slow()
+                ->assertSee('Berlangsung')
+                ->assertPresent('#patrol-map');
+        });
+
         $patrol->refresh();
         $this->assertNull($patrol->total_distance_km);
     }
@@ -160,6 +198,15 @@ class Pbi07PatrolTrackTest extends DuskTestCase
         $patrol->refresh();
         $this->assertNotNull($patrol->total_distance_km);
         $this->assertEqualsWithDelta(0.231, (float) $patrol->total_distance_km, 0.01);
+
+        $this->browse(function (Browser $browser) use ($patrol): void {
+            $browser->loginAs($patrol->ranger)
+                ->visitRoute('ranger.patrols.show', $patrol)
+                ->slow()
+                ->assertSee('Berlangsung')
+                ->assertPresent('[data-patrol-distance]')
+                ->assertPresent('#patrol-map');
+        });
     }
 
     #[TestDox('TC07-07: Ranger sends batch array of GPS coordinates post-offline and distance accumulates')]
@@ -199,6 +246,13 @@ class Pbi07PatrolTrackTest extends DuskTestCase
 
         $patrol->refresh();
         $this->assertEqualsWithDelta(0.498, (float) $patrol->total_distance_km, 0.01);
+
+        $this->browse(function (Browser $browser) use ($patrol): void {
+            $browser->loginAs($patrol->ranger)
+                ->visitRoute('ranger.patrols.show', $patrol)
+                ->slow()
+                ->assertPresent('#patrol-map');
+        });
     }
 
     #[TestDox('TC07-08: Resending payload with duplicate client uuid is idempotent with no duplicate rows')]
@@ -226,6 +280,13 @@ class Pbi07PatrolTrackTest extends DuskTestCase
             ->assertCreated();
 
         $this->assertSame(1, PatrolTrack::where('patrol_id', $patrol->id)->count());
+
+        $this->browse(function (Browser $browser) use ($patrol): void {
+            $browser->loginAs($patrol->ranger)
+                ->visitRoute('ranger.patrols.show', $patrol)
+                ->slow()
+                ->assertSee('Berlangsung');
+        });
     }
 
     #[TestDox('TC07-09: Admin can access patrol route tracks endpoint and view JSON coordinates (HTTP 200 OK)')]
@@ -235,6 +296,14 @@ class Pbi07PatrolTrackTest extends DuskTestCase
         $admin = User::factory()->admin()->create();
         $patrol = Patrol::factory()->inProgress()->create();
         PatrolTrack::factory()->for($patrol)->count(4)->create();
+
+        $this->browse(function (Browser $browser) use ($admin, $patrol): void {
+            $browser->loginAs($admin)
+                ->visitRoute('admin.patrols.show', $patrol)
+                ->slow()
+                ->assertSee('Peta Rute Patroli')
+                ->assertPresent('#patrol-map');
+        });
 
         $response = $this->actingAs($admin)
             ->getJson(route('admin.patrols.tracks.index', $patrol));
@@ -287,12 +356,15 @@ class Pbi07PatrolTrackTest extends DuskTestCase
 
         $this->browse(function (Browser $browser) use ($admin, $patrol): void {
             $browser->loginAs($admin)
+                ->slow()
                 ->visitRoute('admin.patrols.show', $patrol)
                 ->waitForText('Peta Rute Patroli')
+                ->slow()
                 ->assertSee('Peta Rute Patroli')
                 ->assertSee($patrol->forestArea->name)
                 ->assertPresent('[data-patrol-distance]')
-                ->assertPresent('#patrol-map');
+                ->assertPresent('#patrol-map')
+                ->slow();
         });
     }
 
@@ -306,12 +378,15 @@ class Pbi07PatrolTrackTest extends DuskTestCase
 
         $this->browse(function (Browser $browser) use ($ranger, $patrol): void {
             $browser->loginAs($ranger)
+                ->slow()
                 ->visitRoute('ranger.patrols.show', $patrol)
                 ->waitForText('Peta Rute Patroli')
+                ->slow()
                 ->assertSee('Peta Rute Patroli')
                 ->assertSee('Tracking Aktif')
                 ->assertPresent('[data-gps-indicator]')
-                ->assertPresent('#patrol-map');
+                ->assertPresent('#patrol-map')
+                ->slow();
         });
     }
 }

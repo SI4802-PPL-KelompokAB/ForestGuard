@@ -1,4 +1,5 @@
 @extends('layouts.app')
+{{-- PBI-04: Tampilan halaman master data Admin. --}}
 
 @section('title', 'Ubah Kawasan Hutan')
 
@@ -10,7 +11,8 @@
     </div>
 
     <x-card class="max-w-2xl">
-        <form method="POST" action="{{ route('admin.master.forest-areas.update', $forestArea) }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.master.forest-areas.update', $forestArea) }}" class="space-y-4"
+              data-confirm="Apakah Anda yakin ingin menyimpan perubahan kawasan ini?">
             @csrf
             @method('PUT')
             <x-input name="name" label="Nama kawasan" :value="$forestArea->name" required />
@@ -26,10 +28,7 @@
 
             <x-input name="area_ha" type="number" step="0.01" label="Luas kawasan (hektar)" :value="$forestArea->area_ha" required />
 
-            <div class="grid gap-4 sm:grid-cols-2">
-                <x-input name="center_lat" type="number" step="0.0000001" label="Latitude Pusat" :value="$forestArea->center_lat" required />
-                <x-input name="center_lng" type="number" step="0.0000001" label="Longitude Pusat" :value="$forestArea->center_lng" required />
-            </div>
+            <x-forest-area-location-picker :latitude="$forestArea->center_lat" :longitude="$forestArea->center_lng" />
 
             <div>
                 <label for="boundary" class="mb-1 block text-sm font-medium text-slate-700">Batas Kawasan (GeoJSON Polygon Opsional)</label>

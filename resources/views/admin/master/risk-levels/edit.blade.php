@@ -1,4 +1,5 @@
 @extends('layouts.app')
+{{-- PBI-04: Tampilan halaman master data Admin. --}}
 
 @section('title', 'Ubah Tingkat Risiko')
 
@@ -10,7 +11,8 @@
     </div>
 
     <x-card class="max-w-xl">
-        <form method="POST" action="{{ route('admin.master.risk-levels.update', $riskLevel) }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.master.risk-levels.update', $riskLevel) }}" class="space-y-4"
+              data-confirm="Apakah Anda yakin ingin menyimpan perubahan tingkat risiko ini?">
             @csrf
             @method('PUT')
             <x-input name="name" label="Nama tingkat risiko" :value="$riskLevel->name" required />

@@ -75,6 +75,7 @@ Route::middleware(['auth', 'active', 'role:ranger'])->prefix('ranger')->name('ra
 });
 
 Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    // PBI-03: Route manajemen pengguna Admin.
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/kasus', [AdminIncidentController::class, 'index'])->name('incidents.index');
     Route::get('/kasus/{incident}', [AdminIncidentController::class, 'show'])->name('incidents.show');
@@ -97,6 +98,7 @@ Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admi
         ->name('users.restore');
 
     Route::prefix('master')->name('master.')->group(function () {
+        // PBI-04: Route CRUD master data dan status kasus read-only.
         Route::get('/', fn () => redirect()->route('admin.master.forest-areas.index'));
 
         // Kawasan Hutan

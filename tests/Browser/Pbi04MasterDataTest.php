@@ -1,5 +1,7 @@
 <?php
 
+// PBI-04: Bagian kode yang mendukung master data dan proteksi akses.
+
 namespace Tests\Browser;
 
 use App\Models\Checkpoint;
@@ -10,25 +12,60 @@ use App\Models\PatrolCheckpoint;
 use App\Models\RiskLevel;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Str;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class Pbi04MasterDataTest extends DuskTestCase
 {
-    use DatabaseMigrations;
-
     protected function setUp(): void
     {
         parent::setUp();
+        $this->cleanPbi04Fixtures();
         $this->seed(DatabaseSeeder::class);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->cleanPbi04Fixtures();
+        parent::tearDown();
+    }
+
+    /** Remove only records created specifically by this PBI's tests. */
+    private function cleanPbi04Fixtures(): void
+    {
+        $areaNames = array_merge(
+            ['Kawasan PBI04 Dusk', 'Kawasan PBI04 Dusk Diperbarui', 'Kawasan Hapus PBI04'],
+            array_map(fn (int $number): string => "PBI04 Pagination {$number}", range(1, 16)),
+        );
+        $areaIds = ForestArea::withTrashed()->whereIn('name', $areaNames)->pluck('id');
+        $checkpointIds = Checkpoint::withTrashed()->whereIn('code', [
+            'CP-PBI04-CRUD',
+            'CP-PBI04-HISTORY',
+            'CP-PBI04-INVALID-COORD',
+            'CP-PBI04-INVALID-AREA',
+        ])->pluck('id');
+        $patrolIds = Patrol::query()->whereIn('forest_area_id', $areaIds)->pluck('id');
+
+        PatrolCheckpoint::query()
+            ->whereIn('patrol_id', $patrolIds)
+            ->orWhereIn('checkpoint_id', $checkpointIds)
+            ->delete();
+        Patrol::query()->whereIn('id', $patrolIds)->delete();
+        Checkpoint::withTrashed()->whereIn('id', $checkpointIds)->forceDelete();
+        ForestArea::withTrashed()->whereIn('id', $areaIds)->forceDelete();
+        IncidentType::withTrashed()->whereIn('name', [
+            'Tipe Insiden PBI04',
+            'Tipe Insiden PBI04 Diperbarui',
+        ])->forceDelete();
     }
 
     /** TC-PBI04-01: seluruh index master, paginasi, dan status read-only. */
     public function test_admin_can_browse_all_master_indexes_and_case_status_is_read_only(): void
     {
-        ForestArea::factory()->count(16)->create();
+        foreach (range(1, 16) as $number) {
+            ForestArea::factory()->create(['name' => "PBI04 Pagination {$number}"]);
+        }
 
         $this->browse(function (Browser $browser): void {
             $this->loginAsAdmin($browser)
@@ -65,13 +102,14 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->type('name', 'Kawasan PBI04 Dusk')
                 ->type('description', 'Kawasan yang dibuat untuk pengujian PBI-04.')
                 ->type('area_ha', '1250.75')
-                ->type('center_lat', '-5.1234567')
-                ->type('center_lng', '105.1234567')
+                ->click('[data-forest-area-map]')
                 ->type('boundary', $boundary)
                 ->press('Simpan kawasan')
-                ->waitForRoute('admin.master.forest-areas.index')
+                ->press('Ya, lanjutkan')
+                ->waitForRoute('admin.master.checkpoints.index')
                 ->waitForText('Kawasan hutan berhasil ditambahkan.')
-                ->assertSee('Kawasan PBI04 Dusk');
+                ->visitRoute('admin.master.forest-areas.index')
+                ->waitForText('Kawasan PBI04 Dusk');
         });
 
         $area = ForestArea::where('name', 'Kawasan PBI04 Dusk')->firstOrFail();
@@ -86,6 +124,7 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->clear('area_ha')
                 ->type('area_ha', '2222.50')
                 ->press('Simpan perubahan')
+                ->press('Ya, lanjutkan')
                 ->waitForRoute('admin.master.forest-areas.index')
                 ->waitForText('Kawasan hutan berhasil diperbarui.')
                 ->assertSee('Kawasan PBI04 Dusk Diperbarui');
@@ -109,10 +148,12 @@ class Pbi04MasterDataTest extends DuskTestCase
 
             $browser->type('name', 'Ab')
                 ->type('area_ha', '-5')
-                ->type('center_lat', '100')
-                ->type('center_lng', '-200')
-                ->type('boundary', 'invalid-json-text')
-                ->press('Simpan kawasan')
+                ->type('boundary', 'invalid-json-text');
+
+            $browser->script("document.querySelector('[name=center_lat]').value = '100'; document.querySelector('[name=center_lng]').value = '-200';");
+
+            $browser->press('Simpan kawasan')
+                ->press('Ya, lanjutkan')
                 ->waitForText('Nama kawasan minimal 3 karakter.')
                 ->assertSee('Luas kawasan harus lebih besar dari 0 hektar.')
                 ->assertSee('Latitude pusat harus berada di antara -90 dan 90.')
@@ -131,13 +172,15 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->visitRoute('admin.master.forest-areas.index')
                 ->waitForText('Kawasan Hapus PBI04')
                 ->click('form[action="'.route('admin.master.forest-areas.destroy', $area).'"] button')
-                ->acceptDialog()
+                ->press('Ya, lanjutkan')
                 ->waitForText('Kawasan hutan berhasil dihapus.')
                 ->assertDontSee('Kawasan Hapus PBI04')
+                ->click('[data-toast-close]')
                 ->select('status', 'terhapus')
                 ->press('Terapkan')
                 ->waitForText('Kawasan Hapus PBI04')
                 ->click('form[action="'.route('admin.master.forest-areas.restore', $area).'"] button')
+                ->press('Ya, lanjutkan')
                 ->waitForText('Kawasan hutan berhasil dipulihkan.');
         });
 
@@ -159,6 +202,7 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->type('latitude', '-5.1234567')
                 ->type('longitude', '105.1234567')
                 ->press('Simpan checkpoint')
+                ->press('Ya, lanjutkan')
                 ->waitForRoute('admin.master.checkpoints.index')
                 ->waitForText('Checkpoint berhasil ditambahkan.')
                 ->assertSee($code);
@@ -172,6 +216,7 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->clear('name')
                 ->type('name', 'Checkpoint PBI04 Diperbarui')
                 ->press('Simpan perubahan')
+                ->press('Ya, lanjutkan')
                 ->waitForRoute('admin.master.checkpoints.index')
                 ->waitForText('Checkpoint berhasil diperbarui.')
                 ->assertSee('Checkpoint PBI04 Diperbarui');
@@ -188,6 +233,7 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->type('latitude', '-5.1')
                 ->type('longitude', '105.1')
                 ->press('Simpan checkpoint')
+                ->press('Ya, lanjutkan')
                 ->waitForText('Kode checkpoint sudah digunakan.')
                 ->visitRoute('admin.master.checkpoints.create')
                 ->select('forest_area_id', (string) $area->id)
@@ -196,6 +242,7 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->type('latitude', '100')
                 ->type('longitude', '200')
                 ->press('Simpan checkpoint')
+                ->press('Ya, lanjutkan')
                 ->waitForText('Latitude harus berada di antara -90 dan 90.')
                 ->assertSee('Longitude harus berada di antara -180 dan 180.');
 
@@ -207,6 +254,7 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->type('latitude', '-5.1')
                 ->type('longitude', '105.1')
                 ->press('Simpan checkpoint')
+                ->press('Ya, lanjutkan')
                 ->waitForText('Kawasan hutan yang dipilih tidak valid atau sudah dihapus.');
         });
     }
@@ -231,7 +279,7 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->press('Terapkan')
                 ->waitForText($checkpoint->code)
                 ->click('form[action="'.route('admin.master.checkpoints.destroy', $checkpoint).'"] button')
-                ->acceptDialog()
+                ->press('Ya, lanjutkan')
                 ->waitForText('Checkpoint berhasil dihapus.')
                 ->assertDontSee($checkpoint->code)
                 ->visitRoute('admin.patrols.index')
@@ -251,6 +299,7 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->visitRoute('admin.master.incident-types.create')
                 ->type('name', 'Tipe Insiden PBI04')
                 ->press('Simpan tipe insiden')
+                ->press('Ya, lanjutkan')
                 ->waitForRoute('admin.master.incident-types.index')
                 ->waitForText('Tipe insiden berhasil ditambahkan.')
                 ->assertSee('Tipe Insiden PBI04');
@@ -264,16 +313,20 @@ class Pbi04MasterDataTest extends DuskTestCase
                 ->clear('name')
                 ->type('name', 'Tipe Insiden PBI04 Diperbarui')
                 ->press('Simpan perubahan')
+                ->press('Ya, lanjutkan')
                 ->waitForRoute('admin.master.incident-types.index')
                 ->waitForText('Tipe insiden berhasil diperbarui.')
                 ->assertSee('Tipe Insiden PBI04 Diperbarui')
+                ->click('[data-toast-close]')
                 ->click('form[action="'.route('admin.master.incident-types.destroy', $incidentType).'"] button')
-                ->acceptDialog()
+                ->press('Ya, lanjutkan')
                 ->waitForText('Tipe insiden berhasil dihapus.')
+                ->click('[data-toast-close]')
                 ->select('status', 'terhapus')
                 ->press('Terapkan')
                 ->waitForText('Tipe Insiden PBI04 Diperbarui')
                 ->click('form[action="'.route('admin.master.incident-types.restore', $incidentType).'"] button')
+                ->press('Ya, lanjutkan')
                 ->waitForText('Tipe insiden berhasil dipulihkan.');
         });
 
@@ -289,7 +342,7 @@ class Pbi04MasterDataTest extends DuskTestCase
             $this->loginAsAdmin($browser)
                 ->visitRoute('admin.master.risk-levels.index')
                 ->click('form[action="'.route('admin.master.risk-levels.toggle', $risk).'"] button')
-                ->acceptDialog()
+                ->press('Ya, lanjutkan')
                 ->waitForText('Tingkat risiko berhasil dinonaktifkan.')
                 ->assertSee('Nonaktif');
         });
@@ -300,7 +353,7 @@ class Pbi04MasterDataTest extends DuskTestCase
             $this->loginAsAdmin($browser)
                 ->visitRoute('admin.master.risk-levels.index')
                 ->click('form[action="'.route('admin.master.risk-levels.toggle', $risk).'"] button')
-                ->acceptDialog()
+                ->press('Ya, lanjutkan')
                 ->waitForText('Tingkat risiko berhasil diaktifkan.');
         });
 
@@ -310,7 +363,7 @@ class Pbi04MasterDataTest extends DuskTestCase
             $this->loginAsAdmin($browser)
                 ->visitRoute('admin.master.risk-levels.index')
                 ->click('form[action="'.route('admin.master.risk-levels.toggle', $risk).'"] button')
-                ->acceptDialog()
+                ->press('Ya, lanjutkan')
                 ->waitForText('Tidak dapat menonaktifkan tingkat risiko ini karena minimal harus ada satu tingkat risiko yang aktif.');
         });
 
@@ -346,6 +399,9 @@ class Pbi04MasterDataTest extends DuskTestCase
         ];
 
         $this->browse(function (Browser $browser) use ($masterRoutes): void {
+            $browser->logout();
+            $browser->driver->manage()->deleteAllCookies();
+
             foreach ($masterRoutes as $route) {
                 $browser->visitRoute($route)
                     ->waitFor('input#email')

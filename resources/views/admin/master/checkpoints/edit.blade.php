@@ -1,4 +1,5 @@
 @extends('layouts.app')
+{{-- PBI-04: Tampilan halaman master data Admin. --}}
 
 @section('title', 'Ubah Checkpoint')
 
@@ -10,7 +11,8 @@
     </div>
 
     <x-card class="max-w-2xl">
-        <form method="POST" action="{{ route('admin.master.checkpoints.update', $checkpoint) }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.master.checkpoints.update', $checkpoint) }}" class="space-y-4"
+              data-confirm="Apakah Anda yakin ingin menyimpan perubahan checkpoint ini?">
             @csrf
             @method('PUT')
 

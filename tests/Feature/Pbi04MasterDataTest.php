@@ -1,5 +1,7 @@
 <?php
 
+// PBI-04: Bagian kode yang mendukung master data dan proteksi akses.
+
 namespace Tests\Feature;
 
 use App\Models\Checkpoint;
@@ -49,7 +51,8 @@ class Pbi04MasterDataTest extends TestCase
             ]),
         ]);
 
-        $response->assertRedirect(route('admin.master.forest-areas.index'));
+        $createdArea = ForestArea::where('name', 'Kawasan Hutan Lindung Baru')->firstOrFail();
+        $response->assertRedirect(route('admin.master.checkpoints.index', ['kawasan' => $createdArea->id]));
         $response->assertSessionHas('status', 'Kawasan hutan berhasil ditambahkan.');
 
         $this->assertDatabaseHas('forest_areas', [

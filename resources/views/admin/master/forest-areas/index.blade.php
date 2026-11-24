@@ -1,4 +1,5 @@
 @extends('layouts.app')
+{{-- PBI-04: Tampilan halaman master data Admin. --}}
 
 @section('title', 'Data Master - Kawasan Hutan')
 
@@ -73,14 +74,15 @@
                             <td class="px-4 py-3">
                                 <div class="flex flex-wrap gap-2">
                                     @if ($area->trashed())
-                                        <form method="POST" action="{{ route('admin.master.forest-areas.restore', $area) }}">
+                                        <form method="POST" action="{{ route('admin.master.forest-areas.restore', $area) }}"
+                                              data-confirm="Apakah Anda yakin ingin memulihkan kawasan ini?">
                                             @csrf
                                             <button type="submit" class="text-sm font-medium text-forest-700 hover:underline">Pulihkan</button>
                                         </form>
                                     @else
                                         <a href="{{ route('admin.master.forest-areas.edit', $area) }}" class="text-sm font-medium text-forest-700 hover:underline">Ubah</a>
                                         <form method="POST" action="{{ route('admin.master.forest-areas.destroy', $area) }}"
-                                              onsubmit="return confirm('Hapus kawasan hutan ini? Checkpoint di kawasan ini juga akan dinonaktifkan sementara.')">
+                                              data-confirm="Apakah Anda yakin ingin menghapus kawasan ini? Checkpoint di kawasan ini juga akan dinonaktifkan sementara.">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="text-sm font-medium text-red-700 hover:underline">Hapus</button>

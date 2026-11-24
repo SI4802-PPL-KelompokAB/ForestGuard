@@ -23,12 +23,6 @@ class Pbi12CitizenReportTrackingTest extends DuskTestCase
 
     protected Incident $otherCitizenIncident;
 
-    /** @var list<int> */
-    protected array $createdIncidentIds = [];
-
-    /** @var list<int> */
-    protected array $createdStatusHistoryIds = [];
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -84,25 +78,6 @@ class Pbi12CitizenReportTrackingTest extends DuskTestCase
             $reportedStatus,
             'citizen-b'
         );
-    }
-
-    protected function tearDown(): void
-    {
-        try {
-            if ($this->createdStatusHistoryIds !== []) {
-                StatusHistory::query()
-                    ->whereIn('id', $this->createdStatusHistoryIds)
-                    ->delete();
-            }
-
-            if ($this->createdIncidentIds !== []) {
-                Incident::query()
-                    ->whereIn('id', $this->createdIncidentIds)
-                    ->delete();
-            }
-        } finally {
-            parent::tearDown();
-        }
     }
 
     public function test_tc_12_01_citizen_report_list_shows_only_their_own_reports(): void
@@ -186,8 +161,6 @@ class Pbi12CitizenReportTrackingTest extends DuskTestCase
             'reject_reason' => $rejectionReason,
         ]);
 
-        $this->createdIncidentIds[] = (int) $incident->getKey();
-
         return $incident;
     }
 
@@ -205,6 +178,5 @@ class Pbi12CitizenReportTrackingTest extends DuskTestCase
             'changed_at' => now(),
         ]);
 
-        $this->createdStatusHistoryIds[] = (int) $statusHistory->getKey();
     }
 }

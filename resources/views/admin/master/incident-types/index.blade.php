@@ -1,4 +1,5 @@
 @extends('layouts.app')
+{{-- PBI-04: Tampilan halaman master data Admin. --}}
 
 @section('title', 'Data Master - Tipe Insiden')
 
@@ -64,14 +65,15 @@
                             <td class="px-4 py-3">
                                 <div class="flex flex-wrap gap-2">
                                     @if ($type->trashed())
-                                        <form method="POST" action="{{ route('admin.master.incident-types.restore', $type) }}">
+                                        <form method="POST" action="{{ route('admin.master.incident-types.restore', $type) }}"
+                                              data-confirm="Apakah Anda yakin ingin memulihkan tipe insiden ini?">
                                             @csrf
                                             <button type="submit" class="text-sm font-medium text-forest-700 hover:underline">Pulihkan</button>
                                         </form>
                                     @else
                                         <a href="{{ route('admin.master.incident-types.edit', $type) }}" class="text-sm font-medium text-forest-700 hover:underline">Ubah</a>
                                         <form method="POST" action="{{ route('admin.master.incident-types.destroy', $type) }}"
-                                              onsubmit="return confirm('Hapus tipe insiden ini? Tipe ini tidak akan muncul pada pelaporan baru.')">
+                                              data-confirm="Apakah Anda yakin ingin menghapus tipe insiden ini? Tipe ini tidak akan muncul pada pelaporan baru.">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="text-sm font-medium text-red-700 hover:underline">Hapus</button>

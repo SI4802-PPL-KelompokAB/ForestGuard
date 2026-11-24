@@ -34,6 +34,16 @@ class StoreIncidentReport
             return $existing;
         }
 
+        $diskName = config('filesystems.evidence_disk', 's3');
+        $filePath = $photo->store('evidences/incidents', [
+            'disk' => $diskName,
+            'visibility' => 'private',
+        ]);
+
+        if (! is_string($filePath)) {
+            throw new RuntimeException('Gagal menyimpan foto bukti ke penyimpanan privat.');
+        }
+
         $fileSize = $photo->getSize();
         $mimeType = $photo->getMimeType() ?: 'image/jpeg';
         $diskName = config('filesystems.evidence_disk', 's3');

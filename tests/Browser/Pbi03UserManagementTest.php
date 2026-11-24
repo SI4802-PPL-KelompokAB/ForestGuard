@@ -1,11 +1,12 @@
 <?php
 
+// PBI-03: Bagian kode yang mendukung manajemen pengguna dan RBAC.
+
 namespace Tests\Browser;
 
 use App\Models\Role;
 use App\Models\User;
 use Facebook\WebDriver\WebDriverBy;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
@@ -30,15 +31,31 @@ use Tests\DuskTestCase;
  */
 class Pbi03UserManagementTest extends DuskTestCase
 {
-    use DatabaseMigrations;
-
     private const PASSWORD_SEEDER = 'Password123!'; // UserSeeder::DEV_PASSWORD
     private const LOGIN_BUTTON    = 'Masuk';        // teks tombol di halaman login
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->cleanPbi03Fixtures();
         $this->seed(); // DatabaseSeeder -> roles + user fixture
+    }
+
+    protected function tearDown(): void
+    {
+        $this->cleanPbi03Fixtures();
+        parent::tearDown();
+    }
+
+    /** Remove only records created specifically by this PBI's tests. */
+    private function cleanPbi03Fixtures(): void
+    {
+        User::withTrashed()
+            ->whereIn('email', [
+                'ranger.dusk@forestguard.test',
+                'keyboard@forestguard.test',
+            ])
+            ->forceDelete();
     }
 
     // ---------- Helper ----------
@@ -107,7 +124,7 @@ class Pbi03UserManagementTest extends DuskTestCase
     {
         $this->browse(function (Browser $browser) {
             $this->loginAsAdminUser($browser)
-                ->visit('/admin/pengguna')
+                ->visit('/admin/pengguna?q=forestguard.test')
                 ->waitForText('Manajemen pengguna')
                 ->assertSee('Kelola akun admin, ranger, dan warga.')
                 ->assertSeeLink('Tambah akun')
@@ -144,6 +161,7 @@ class Pbi03UserManagementTest extends DuskTestCase
                 ->type('email', 'ranger.dusk@forestguard.test')
                 ->select('role', Role::RANGER)
                 ->press('Tambah akun')
+                ->press('Ya, lanjutkan')
                 ->waitForRoute('admin.users.index')
                 ->assertSee('Akun berhasil dibuat. Kata sandi sementara telah dikirim ke email.');
         });
@@ -169,6 +187,7 @@ class Pbi03UserManagementTest extends DuskTestCase
             $this->disableHtml5Validation($browser);
 
             $browser->press('Tambah akun')
+                ->press('Ya, lanjutkan')
                 ->pause(1500) // beri waktu server memproses; validasi gagal -> tetap di form
                 ->assertPathIs('/admin/pengguna/buat');
         });
@@ -198,6 +217,7 @@ class Pbi03UserManagementTest extends DuskTestCase
             );
 
             $browser->press('Tambah akun')
+                ->press('Ya, lanjutkan')
                 ->waitFor('.text-red-600, .invalid-feedback, [role=alert]') // sesuaikan class error Anda
                 ->assertPathIs('/admin/pengguna/buat');
         });
@@ -219,6 +239,7 @@ class Pbi03UserManagementTest extends DuskTestCase
                 ->type('email', 'admin@forestguard.test')
                 ->select('role', Role::RANGER)
                 ->press('Tambah akun')
+                ->press('Ya, lanjutkan')
                 ->waitForText('Email sudah')
                 ->assertInputValue('name', 'Duplikat'); // input valid dipertahankan
         });
@@ -274,6 +295,7 @@ class Pbi03UserManagementTest extends DuskTestCase
                 ->type('name', 'Ranger Satu Edit')
                 ->select('is_active', '0') // edit.blade.php pakai <select>, bukan checkbox
                 ->press('Simpan perubahan')
+                ->press('Ya, lanjutkan')
                 ->waitForRoute('admin.users.index')
                 ->assertSee('Pengguna berhasil diperbarui.');
         });
@@ -312,7 +334,7 @@ class Pbi03UserManagementTest extends DuskTestCase
 
             $this->clickRowAction($browser, 'ranger1@forestguard.test', 'Hapus');
 
-            $browser->acceptDialog() // jika konfirmasi berupa modal custom, ganti dengan klik tombol modal
+            $browser->press('Ya, lanjutkan')
                 ->waitForText('Pengguna berhasil dihapus.');
 
             $this->assertNotNull(
@@ -323,7 +345,8 @@ class Pbi03UserManagementTest extends DuskTestCase
             $this->visitFiltered($browser, 'ranger1@forestguard.test', 'terhapus');
             $this->clickRowAction($browser, 'ranger1@forestguard.test', 'Pulihkan');
 
-            $browser->waitForText('Pengguna berhasil dipulihkan.');
+            $browser->press('Ya, lanjutkan')
+                ->waitForText('Pengguna berhasil dipulihkan.');
         });
 
         $this->assertNull(User::where('email', 'ranger1@forestguard.test')->first()->deleted_at);

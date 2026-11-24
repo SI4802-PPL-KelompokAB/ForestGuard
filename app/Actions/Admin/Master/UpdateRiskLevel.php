@@ -1,5 +1,7 @@
 <?php
 
+// PBI-04: Bagian kode yang mendukung master data dan proteksi akses.
+
 namespace App\Actions\Admin\Master;
 
 use App\Http\Requests\Admin\Master\UpdateRiskLevelRequest;

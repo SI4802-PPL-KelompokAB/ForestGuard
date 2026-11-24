@@ -35,6 +35,10 @@ class Pbi09EvidenceUploadTest extends DuskTestCase
     {
         parent::setUp();
 
+        if (config('filesystems.evidence_disk') !== 'local') {
+            throw new RuntimeException('Set EVIDENCE_DISK=local for Dusk evidence persistence tests.');
+        }
+
         $this->temporaryDirectory = sys_get_temp_dir().DIRECTORY_SEPARATOR.'dusk-pbi09-'.Str::uuid();
 
         if (! mkdir($this->temporaryDirectory, 0700)) {
@@ -102,6 +106,25 @@ class Pbi09EvidenceUploadTest extends DuskTestCase
                 'Laporan tidak boleh dibuat sebelum form dikirim.'
             );
             $this->assertSame($before, $this->persistenceSnapshot());
+        });
+    }
+
+    public function test_tc_09_04_valid_submission_persists_report_and_private_evidence(): void
+    {
+        $this->browse(function (Browser $browser): void {
+            $clientUuid = $this->prepareCitizenIncidentForm($browser, 'TC09-04');
+
+            $browser->attach('#photo', $this->validJpegPath)
+                ->press('Kirim Laporan')
+                ->waitForText('Laporan berhasil terkirim', 15)
+                ->assertSee('Laporan berhasil terkirim');
+
+            $incident = Incident::query()->where('client_uuid', $clientUuid)->firstOrFail();
+            $evidence = Evidence::query()->where('incident_id', $incident->id)->sole();
+
+            $this->assertSame($clientUuid, $incident->client_uuid);
+            $this->assertSame($incident->id, $evidence->incident_id);
+            Storage::disk('local')->assertExists($evidence->file_path);
         });
     }
 
@@ -217,7 +240,7 @@ class Pbi09EvidenceUploadTest extends DuskTestCase
      */
     private function persistenceSnapshot(): array
     {
-        $files = Storage::disk(config('filesystems.evidence_disk'))->allFiles('evidences/incident-reports');
+        $files = Storage::disk('local')->allFiles('evidences/incidents');
         sort($files, SORT_STRING);
 
         return [
