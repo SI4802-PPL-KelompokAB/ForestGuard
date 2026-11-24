@@ -113,6 +113,7 @@ class Pbi09EvidenceUploadTest extends DuskTestCase
     {
         $this->browse(function (Browser $browser): void {
             $clientUuid = $this->prepareCitizenIncidentForm($browser, 'TC09-04');
+            $before = $this->persistenceSnapshot();
 
             $browser->attach('#photo', $this->validJpegPath)
                 ->press('Kirim Laporan')
@@ -124,7 +125,19 @@ class Pbi09EvidenceUploadTest extends DuskTestCase
 
             $this->assertSame($clientUuid, $incident->client_uuid);
             $this->assertSame($incident->id, $evidence->incident_id);
-            Storage::disk('local')->assertExists($evidence->file_path);
+            $after = $this->persistenceSnapshot();
+            $this->assertSame([$evidence->file_path], array_values(array_diff($after['files'], $before['files'])));
+
+            $photoSelector = 'img[src="'.route('evidence.show', $evidence).'"]';
+            $browser->loginAsAdmin()
+                ->visitRoute('admin.incidents.show', $incident)
+                ->waitFor($photoSelector)
+                ->waitUntil(
+                    'document.querySelector('.json_encode($photoSelector, JSON_THROW_ON_ERROR).')?.naturalWidth > 0',
+                    15,
+                    'Foto bukti privat tidak berhasil dimuat pada detail kasus.',
+                )
+                ->assertVisible($photoSelector);
         });
     }
 
@@ -240,7 +253,7 @@ class Pbi09EvidenceUploadTest extends DuskTestCase
      */
     private function persistenceSnapshot(): array
     {
-        $files = Storage::disk('local')->allFiles('evidences/incidents');
+        $files = Storage::disk('local')->allFiles('evidences');
         sort($files, SORT_STRING);
 
         return [

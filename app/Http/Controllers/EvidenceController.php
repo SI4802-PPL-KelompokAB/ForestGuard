@@ -100,9 +100,10 @@ class EvidenceController extends Controller
     {
         if ($evidence->incident_id !== null && Str::startsWith($evidence->file_path, 'evidences/incidents/')) {
             $legacyDisk = Storage::disk('public');
-            abort_unless($legacyDisk->exists($evidence->file_path), 404);
 
-            return $legacyDisk->response($evidence->file_path, headers: ['Cache-Control' => 'private, no-store']);
+            if ($legacyDisk->fileExists($evidence->file_path)) {
+                return $legacyDisk->response($evidence->file_path, headers: ['Cache-Control' => 'private, no-store']);
+            }
         }
 
         $diskName = config('filesystems.evidence_disk', 's3');

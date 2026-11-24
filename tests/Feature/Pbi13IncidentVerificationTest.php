@@ -69,10 +69,16 @@ class Pbi13IncidentVerificationTest extends TestCase
         $this->get($signedUrl)->assertOk()->assertStreamedContent('test image');
 
         $evidence->update(['file_path' => 'evidences/incidents/historical.png']);
-        $this->get(route('evidence.show', $evidence))->assertNotFound();
-        Storage::disk('public')->put($evidence->file_path, 'historical image');
-        $this->get(route('evidence.show', $evidence))->assertOk()->assertStreamedContent('historical image');
+        $signedUrl = $this->get(route('evidence.show', $evidence))->assertRedirect()->headers->get('Location');
+        $this->get($signedUrl)->assertNotFound();
+
+        Storage::disk('local')->put($evidence->file_path, 'older private image');
+        $this->get($signedUrl)->assertOk()->assertStreamedContent('older private image');
         $this->actingAs($pending->reporter)->get(route('evidence.show', $evidence))->assertForbidden();
+
+        Storage::disk('local')->delete($evidence->file_path);
+        Storage::disk('public')->put($evidence->file_path, 'historical image');
+        $this->actingAs($admin)->get(route('evidence.show', $evidence))->assertOk()->assertStreamedContent('historical image');
 
         $this->assertSame('Reported', $reported->fresh()->caseStatus->name);
         $this->assertDatabaseCount('status_histories', 0);
