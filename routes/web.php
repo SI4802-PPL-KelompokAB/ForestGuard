@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\Master\ForestAreaController;
 use App\Http\Controllers\Admin\Master\IncidentTypeController;
 use App\Http\Controllers\Admin\Master\RiskLevelController;
 use App\Http\Controllers\Admin\PatrolController as AdminPatrolController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -80,6 +81,8 @@ Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admi
     Route::get('/kasus', [AdminIncidentController::class, 'index'])->name('incidents.index');
     Route::get('/kasus/{incident}', [AdminIncidentController::class, 'show'])->name('incidents.show');
     Route::post('/kasus/{incident}/status', [AdminIncidentController::class, 'updateStatus'])->name('incidents.update-status');
+    Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/laporan/pdf', [ReportController::class, 'export'])->name('reports.pdf');
     Route::get('/patroli', [AdminPatrolController::class, 'index'])->name('patrols.index');
     Route::post('/patroli', [AdminPatrolController::class, 'store'])->name('patrols.store');
     Route::get('/patroli/{patrol}', [AdminPatrolController::class, 'show'])->name('patrols.show');

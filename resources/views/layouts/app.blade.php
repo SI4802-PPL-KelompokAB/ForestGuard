@@ -25,6 +25,7 @@
         if ($user?->isAdmin()) {
             $navItems[] = ['label' => 'Dasbor', 'href' => route('admin.dashboard'), 'active' => 'admin.dashboard'];
             $navItems[] = ['label' => 'Kasus', 'href' => route('admin.incidents.index'), 'active' => 'admin.incidents.*'];
+            $navItems[] = ['label' => 'Laporan PDF', 'href' => route('admin.reports.index'), 'active' => 'admin.reports.*'];
             $navItems[] = ['label' => 'Pengguna', 'href' => route('admin.users.index'), 'active' => 'admin.users.*'];
             $navItems[] = ['label' => 'Patroli', 'href' => route('admin.patrols.index'), 'active' => 'admin.patrols.*'];
             $navItems[] = ['label' => 'Data Master', 'href' => route('admin.master.forest-areas.index'), 'active' => 'admin.master.*'];
