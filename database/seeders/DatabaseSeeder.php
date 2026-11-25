@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             ForestAreaSeeder::class,
             CheckpointSeeder::class,
             UserSeeder::class,
+            IncidentSeeder::class,
         ]);
     }
 }
