@@ -22,6 +22,10 @@ class Pbi05PatrolAssignmentTest extends DuskTestCase
         Artisan::call('migrate:fresh');
     }
 
+    /**
+     * Test case Jira: TC-PBI05-03a.
+     * TC-PBI05-03a: Semua field wajib dan array checkpoint kosong ditolak; input web valid dipertahankan.
+     */
     #[TestDox('TC-PBI05-03a: required inputs prevent submission and corrected input creates one assignment')]
     public function test_empty_assignment_fields_prevent_submission_until_completed(): void
     {
@@ -50,6 +54,10 @@ class Pbi05PatrolAssignmentTest extends DuskTestCase
         $this->assertDatabaseCount('patrol_checkpoints', 1);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-05a.
+     * TC-PBI05-05a: Ranger nonaktif, terhapus, tidak ada, Citizen, dan Admin ditolak sebagai petugas.
+     */
     #[TestDox('TC-PBI05-05a: an unavailable ranger produces a visible error and can be replaced')]
     public function test_ranger_deactivated_after_form_opens_shows_error_and_allows_correction(): void
     {
@@ -77,6 +85,10 @@ class Pbi05PatrolAssignmentTest extends DuskTestCase
         $this->assertSame($replacement->id, Patrol::sole()->ranger_id);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-04c.
+     * TC-PBI05-04c: Checkpoint terhapus/tidak ada ditolak.
+     */
     #[TestDox('TC-PBI05-04c: a removed checkpoint is rejected without saving a partial assignment')]
     public function test_checkpoint_removed_after_selection_shows_error_without_saving_assignment(): void
     {
@@ -100,6 +112,11 @@ class Pbi05PatrolAssignmentTest extends DuskTestCase
         $this->assertDatabaseCount('patrol_checkpoints', 0);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-02a, TC-PBI05-08.
+     * TC-PBI05-02a: Penugasan atomik, status awal, jadwal UTC, UUID dan urutan checkpoint benar.
+     * TC-PBI05-08: Tugas hanya diserahkan ke Ranger tujuan dengan jadwal/checkpoint benar.
+     */
     #[TestDox('TC-PBI05-02a, TC-PBI05-08: browser assignment reaches only its target ranger')]
     public function test_admin_assigns_patrol_and_only_target_ranger_sees_ordered_task(): void
     {
@@ -131,6 +148,12 @@ class Pbi05PatrolAssignmentTest extends DuskTestCase
         $this->assertDatabaseCount('patrol_checkpoints', 2);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-01b, TC-PBI05-03a, TC-PBI05-10.
+     * TC-PBI05-01b: Pergantian area menghapus pilihan lama; respons lama tidak menimpa area terbaru.
+     * TC-PBI05-03a: Semua field wajib dan array checkpoint kosong ditolak; input web valid dipertahankan.
+     * TC-PBI05-10: Loading, kegagalan fetch/pemulihan, keyboard, submit tertunda, dan layout 360/1280 px.
+     */
     #[TestDox('TC-PBI05-01b, TC-PBI05-03a, TC-PBI05-10: area changes, field errors and mobile layout')]
     public function test_changing_area_discards_selection_and_server_validation_keeps_valid_input(): void
     {
@@ -157,6 +180,11 @@ class Pbi05PatrolAssignmentTest extends DuskTestCase
         $this->assertDatabaseCount('patrols', 0);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-01b, TC-PBI05-10.
+     * TC-PBI05-01b: Pergantian area menghapus pilihan lama; respons lama tidak menimpa area terbaru.
+     * TC-PBI05-10: Loading, kegagalan fetch/pemulihan, keyboard, submit tertunda, dan layout 360/1280 px.
+     */
     #[TestDox('TC-PBI05-01b, TC-PBI05-10: a late checkpoint response cannot overwrite the latest area')]
     public function test_loading_and_late_checkpoint_responses_keep_the_latest_area_selection(): void
     {
@@ -201,6 +229,10 @@ JS);
         $this->assertDatabaseCount('patrols', 0);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-10.
+     * TC-PBI05-10: Loading, kegagalan fetch/pemulihan, keyboard, submit tertunda, dan layout 360/1280 px.
+     */
     #[TestDox('TC-PBI05-10: checkpoint fetch failure clears stale choices and can recover')]
     public function test_checkpoint_fetch_failure_clears_stale_choices_and_allows_reselection(): void
     {
@@ -230,6 +262,11 @@ JS);
         $this->assertDatabaseCount('patrols', 0);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-01c.
+     * TC-PBI05-01c: Tanpa Ranger, area, atau checkpoint, empty state tampil dan submit tidak aktif.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('emptyMasters')]
     #[TestDox('TC-PBI05-01c: missing master data prevents browser submission ($missing)')]
     public function test_missing_master_data_shows_an_empty_state_and_disables_assignment(string $missing, string $message): void
@@ -257,6 +294,11 @@ JS);
         $this->assertDatabaseCount('patrol_checkpoints', 0);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-10.
+     * TC-PBI05-10: Loading, kegagalan fetch/pemulihan, keyboard, submit tertunda, dan layout 360/1280 px.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('viewportWidths')]
     #[TestDox('TC-PBI05-10: keyboard input and pending submission work at width $width')]
     public function test_keyboard_selection_and_pending_submission_are_usable_at_each_viewport(int $width): void

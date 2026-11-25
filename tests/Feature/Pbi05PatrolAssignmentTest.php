@@ -32,6 +32,12 @@ class Pbi05PatrolAssignmentTest extends TestCase
         $this->seed(RoleSeeder::class);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-02a, TC-PBI05-02c, TC-PBI05-08.
+     * TC-PBI05-02a: Penugasan atomik, status awal, jadwal UTC, UUID dan urutan checkpoint benar.
+     * TC-PBI05-02c: Pembuat, kode, status dan waktu aktual tidak dapat dipalsukan klien.
+     * TC-PBI05-08: Tugas hanya diserahkan ke Ranger tujuan dengan jadwal/checkpoint benar.
+     */
     #[TestDox('TC-PBI05-02a, TC-PBI05-02c, TC-PBI05-08: assignment, protected fields and ranger handoff')]
     public function test_assignment_is_atomic_ordered_utc_and_visible_only_to_its_ranger(): void
     {
@@ -73,6 +79,10 @@ class Pbi05PatrolAssignmentTest extends TestCase
         $this->get(route('ranger.patrols.show', $patrol))->assertNotFound();
     }
 
+    /**
+     * Test case Jira: TC-PBI05-01a.
+     * TC-PBI05-01a: Pilihan Ranger/area/checkpoint valid dan pagination stabil.
+     */
     #[TestDox('TC-PBI05-01a: only valid master options are offered')]
     public function test_admin_sees_only_valid_options_and_active_checkpoints_for_selected_area(): void
     {
@@ -96,6 +106,10 @@ class Pbi05PatrolAssignmentTest extends TestCase
         ]);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-03a.
+     * TC-PBI05-03a: Semua field wajib dan array checkpoint kosong ditolak; input web valid dipertahankan.
+     */
     #[TestDox('TC-PBI05-03a: missing required fields never create an assignment')]
     public function test_required_fields_are_rejected_without_persistence(): void
     {
@@ -106,6 +120,15 @@ class Pbi05PatrolAssignmentTest extends TestCase
         $this->assertDatabaseCount('patrol_checkpoints', 0);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-03b, TC-PBI05-04a, TC-PBI05-04b, TC-PBI05-04c, TC-PBI05-05a.
+     * TC-PBI05-03b: Tanggal mustahil dan format jadwal tidak sah ditolak.
+     * TC-PBI05-04a: Checkpoint duplikat ditolak.
+     * TC-PBI05-04b: Checkpoint dari area lain ditolak.
+     * TC-PBI05-04c: Checkpoint terhapus/tidak ada ditolak.
+     * TC-PBI05-05a: Ranger nonaktif, terhapus, tidak ada, Citizen, dan Admin ditolak sebagai petugas.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('invalidSelections')]
     #[TestDox('TC-PBI05-03b, TC-PBI05-04a, TC-PBI05-04b, TC-PBI05-04c, TC-PBI05-05a: invalid selections are rejected ($invalid)')]
     public function test_invalid_or_changed_master_is_rejected(string $invalid): void
@@ -160,6 +183,10 @@ class Pbi05PatrolAssignmentTest extends TestCase
         $this->assertDatabaseCount('patrol_checkpoints', 0);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-06.
+     * TC-PBI05-06: Insert checkpoint kedua gagal: rollback penuh, tanpa event, error HTTP/web dan input lama benar.
+     */
     #[TestDox('TC-PBI05-06: checkpoint failure rolls back the complete assignment')]
     public function test_failed_checkpoint_insert_rolls_back_and_never_publishes_assignment(): void
     {
@@ -185,6 +212,12 @@ class Pbi05PatrolAssignmentTest extends TestCase
         Event::assertNotDispatched(PatrolAssigned::class);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-09a, TC-PBI05-09b, TC-PBI05-09c.
+     * TC-PBI05-09a: Event baru terbit sesudah transaksi terluar commit.
+     * TC-PBI05-09b: Rollback transaksi luar tidak meninggalkan data/event.
+     * TC-PBI05-09c: Listener gagal sesudah commit tidak membatalkan penugasan sah.
+     */
     #[TestDox('TC-PBI05-09a, TC-PBI05-09b, TC-PBI05-09c: event commit, rollback and listener failure')]
     public function test_event_waits_for_outer_commit_and_listener_failure_does_not_undo_assignment(): void
     {
@@ -210,6 +243,10 @@ class Pbi05PatrolAssignmentTest extends TestCase
         $this->assertModelExists($patrol);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-05b.
+     * TC-PBI05-05b: Master yang berubah setelah form dibuka diperiksa ulang di transaksi.
+     */
     #[TestDox('TC-PBI05-05b: master is checked inside the assignment transaction')]
     public function test_transaction_revalidates_master_after_request_validation(): void
     {
@@ -227,6 +264,11 @@ class Pbi05PatrolAssignmentTest extends TestCase
         $this->assertDatabaseCount('patrols', 0);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-07a, TC-PBI05-07b.
+     * TC-PBI05-07a: Guest ditolak sesuai kontrak autentikasi.
+     * TC-PBI05-07b: Ranger/Citizen tidak dapat memakai endpoint Admin.
+     */
     #[TestDox('TC-PBI05-07a, TC-PBI05-07b: guest and non-admin access is refused')]
     public function test_admin_endpoints_reject_other_roles_and_guests(): void
     {
@@ -243,6 +285,10 @@ class Pbi05PatrolAssignmentTest extends TestCase
         $this->assertDatabaseCount('patrols', 1);
     }
 
+    /**
+     * Test tambahan PBI-05; belum dipetakan ke nomor test case Jira.
+     * Memastikan nama master di-escape agar skrip tidak dieksekusi dan detail tetap terbaca setelah master dihapus.
+     */
     public function test_detail_escapes_master_names_and_retains_deleted_master(): void
     {
         $patrol = Patrol::factory()->create();
@@ -253,6 +299,10 @@ class Pbi05PatrolAssignmentTest extends TestCase
             ->assertSee('&lt;script&gt;alert(1)&lt;/script&gt;', false)->assertDontSee('<script>alert(1)</script>', false);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-02b.
+     * TC-PBI05-02b: Jadwal lampau/bertumpuk diterima dengan kode dan UUID unik.
+     */
     #[TestDox('TC-PBI05-02b: past and overlapping schedules have distinct server identifiers')]
     public function test_multiple_assignments_for_the_same_ranger_allow_past_and_overlapping_schedules(): void
     {
@@ -280,6 +330,10 @@ class Pbi05PatrolAssignmentTest extends TestCase
         Event::assertDispatchedTimes(PatrolAssigned::class, 2);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-09a.
+     * TC-PBI05-09a: Event baru terbit sesudah transaksi terluar commit.
+     */
     #[TestDox('TC-PBI05-09a: a nested assignment event is published only after the outer commit')]
     public function test_assignment_event_is_published_only_after_the_outer_transaction_commits(): void
     {
@@ -305,6 +359,11 @@ class Pbi05PatrolAssignmentTest extends TestCase
         $this->assertDatabaseCount('patrol_checkpoints', 1);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-03a.
+     * TC-PBI05-03a: Semua field wajib dan array checkpoint kosong ditolak; input web valid dipertahankan.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('missingInputs')]
     #[TestDox('TC-PBI05-03a: each missing or empty input returns its field error ($field)')]
     public function test_each_required_input_is_rejected_without_persisting_data(string $field, bool $emptyArray): void
@@ -331,6 +390,11 @@ class Pbi05PatrolAssignmentTest extends TestCase
         Event::assertNotDispatched(PatrolAssigned::class);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-05b.
+     * TC-PBI05-05b: Master yang berubah setelah form dibuka diperiksa ulang di transaksi.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('changedMasters')]
     #[TestDox('TC-PBI05-05b: changes after opening the form cannot slip through ($master)')]
     public function test_master_changes_after_opening_the_form_are_rejected(string $master, string $field): void
@@ -354,6 +418,11 @@ class Pbi05PatrolAssignmentTest extends TestCase
         Event::assertNotDispatched(PatrolAssigned::class);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-06.
+     * TC-PBI05-06: Insert checkpoint kedua gagal: rollback penuh, tanpa event, error HTTP/web dan input lama benar.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('transports')]
     #[TestDox('TC-PBI05-06: second checkpoint query failure returns an error and rolls back ($json)')]
     public function test_checkpoint_query_failure_is_atomic_and_preserves_web_input(bool $json): void
@@ -393,6 +462,10 @@ class Pbi05PatrolAssignmentTest extends TestCase
         Event::assertNotDispatched(PatrolAssigned::class);
     }
 
+    /**
+     * Test case Jira: TC-PBI05-01a.
+     * TC-PBI05-01a: Pilihan Ranger/area/checkpoint valid dan pagination stabil.
+     */
     #[TestDox('TC-PBI05-01a: admin assignments use stable pagination')]
     public function test_admin_assignment_list_paginates_without_losing_or_repeating_patrols(): void
     {

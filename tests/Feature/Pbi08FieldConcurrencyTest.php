@@ -28,6 +28,11 @@ class Pbi08FieldConcurrencyTest extends TestCase
         $this->seed(RoleSeeder::class);
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-11a.
+     * Dua request bersamaan untuk data yang sama menghasilkan tepat satu catatan checkpoint atau observasi.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('recordTypes')]
     public function test_concurrent_duplicate_requests_preserve_one_record(string $kind): void
     {
@@ -54,6 +59,11 @@ class Pbi08FieldConcurrencyTest extends TestCase
         }
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-11b.
+     * Request pencatatan yang menunggu lock ditolak jika transaksi penyelesaian patroli lebih dahulu commit.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('recordTypes')]
     public function test_waiting_record_request_is_rejected_when_finish_commits_first(string $kind): void
     {

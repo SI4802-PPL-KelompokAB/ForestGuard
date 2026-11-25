@@ -9,8 +9,10 @@ use App\Models\StatusHistory;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class StoreIncidentReport
 {
@@ -32,19 +34,28 @@ class StoreIncidentReport
             return $existing;
         }
 
-        $diskName = config('filesystems.evidence_disk', 's3');
-        $filePath = $photo->store('evidences/incidents', [
-            'disk' => $diskName,
-            'visibility' => 'private',
-        ]);
-
-        if (! is_string($filePath)) {
-            throw new RuntimeException('Gagal menyimpan foto bukti ke penyimpanan privat.');
-        }
-
         $fileSize = $photo->getSize();
         $mimeType = $photo->getMimeType() ?: 'image/jpeg';
+        $diskName = config('filesystems.evidence_disk', 's3');
+        $filePath = $photo->store('evidences/incident-reports', ['disk' => $diskName, 'visibility' => 'private']);
+        if ($filePath === false) {
+            throw new RuntimeException('Gagal menyimpan bukti foto ke storage privat.');
+        }
 
+        try {
+            return $this->persist($reporter, $validated, $filePath, $fileSize, $mimeType);
+        } catch (Throwable $exception) {
+            rescue(fn () => Storage::disk($diskName)->delete($filePath));
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function persist(User $reporter, array $validated, string $filePath, int $fileSize, string $mimeType): Incident
+    {
         return DB::transaction(function () use ($reporter, $validated, $filePath, $fileSize, $mimeType): Incident {
             $reportedStatus = CaseStatus::where('name', 'Reported')->firstOrFail();
 

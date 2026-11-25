@@ -21,6 +21,11 @@ class Pbi08FieldRecordingTest extends DuskTestCase
         Artisan::call('migrate:fresh');
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-05a, TC-PBI08-05b, TC-PBI08-13a.
+     * Ketiga kategori menerima catatan tepat 5 karakter setelah trim dan lokasi manual; hasil tetap tampil setelah reload.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('observationCategories')]
     public function test_each_category_accepts_five_characters_after_trim_and_manual_location(string $category): void
     {
@@ -57,6 +62,10 @@ class Pbi08FieldRecordingTest extends DuskTestCase
         ];
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-10b, TC-PBI08-13a.
+     * Patroli yang selesai saat form masih terbuka menolak penyimpanan observasi dan mempertahankan catatan pengguna.
+     */
     public function test_patrol_completed_while_form_is_open_rejects_observation_and_preserves_notes(): void
     {
         $this->seed(RoleSeeder::class);
@@ -79,6 +88,11 @@ class Pbi08FieldRecordingTest extends DuskTestCase
         $this->assertDatabaseCount('evidences', 0);
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-06.
+     * Catatan kosong, spasi saja, atau kurang dari 5 karakter menampilkan error; koreksi input dapat disimpan.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('invalidNotes')]
     public function test_invalid_notes_show_validation_and_can_be_corrected(string $note, string $message): void
     {
@@ -114,6 +128,11 @@ class Pbi08FieldRecordingTest extends DuskTestCase
         ];
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-03b.
+     * Koordinat tidak lengkap atau di luar rentang ditolak tanpa menghapus catatan; koordinat yang diperbaiki diterima.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('invalidCoordinates')]
     public function test_invalid_manual_location_preserves_notes_and_accepts_corrected_coordinates(string $latitude, string $longitude): void
     {
@@ -147,6 +166,11 @@ class Pbi08FieldRecordingTest extends DuskTestCase
         ];
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-08b.
+     * Foto berformat salah, kosong, atau melebihi 5 MB ditolak; observasi dapat disimpan tanpa foto yang ditolak.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('invalidPhotos')]
     public function test_invalid_photo_shows_error_without_losing_notes_and_can_be_removed(string $kind, string $message): void
     {
@@ -194,6 +218,10 @@ JS);
         ];
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-01, TC-PBI08-02a, TC-PBI08-05a, TC-PBI08-13a, TC-PBI08-14a, TC-PBI08-15.
+     * Ranger mencatat checkpoint dan observasi dari layar ponsel; data bertahan setelah reload dan dapat mengisi awal form insiden.
+     */
     public function test_mobile_checkpoint_and_observation_flow_survives_reload(): void
     {
         $this->seed(RoleSeeder::class);
@@ -232,6 +260,10 @@ JS);
         $this->assertDatabaseCount('incidents', 0);
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-03a, TC-PBI08-12.
+     * Penolakan izin GPS dan kegagalan server tidak menampilkan sukses; catatan dipertahankan dan dapat dikirim ulang.
+     */
     public function test_gps_and_server_failures_preserve_notes_and_never_claim_success(): void
     {
         $this->seed(RoleSeeder::class);
@@ -270,6 +302,10 @@ JS);
         $this->assertSame(1, $patrol->observations()->count());
     }
 
+    /**
+     * Test case Jira FG-8: TC-PBI08-07a, TC-PBI08-12c, TC-PBI08-12d, TC-PBI08-15.
+     * Respons penyimpanan yang hilang serta submit ganda tidak membuat observasi duplikat.
+     */
     public function test_lost_confirmation_and_double_submit_do_not_duplicate_observations(): void
     {
         $this->seed(RoleSeeder::class);

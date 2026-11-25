@@ -25,6 +25,14 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->seed(RoleSeeder::class);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-02a, TC-PBI06-02b, TC-PBI06-03, TC-PBI06-05a, TC-PBI06-05b.
+     * TC-PBI06-02a: Start mencatat waktu server dan mengubah patroli yang sama menjadi Berlangsung.
+     * TC-PBI06-02b: Payload start/finish tidak mengubah penugasan/pemilik atau waktu server.
+     * TC-PBI06-03: Reload dan login ulang mempertahankan patroli, waktu mulai dan durasi.
+     * TC-PBI06-05a: Konfirmasi akhir menghasilkan Selesai dengan waktu/durasi benar.
+     * TC-PBI06-05b: Checkpoint belum lengkap tetap boleh selesai tanpa kunjungan palsu.
+     */
     #[TestDox('TC-PBI06-02a, TC-PBI06-02b, TC-PBI06-03, TC-PBI06-05a, TC-PBI06-05b: server time and unvisited checkpoints')]
     public function test_server_time_survives_reload_and_finish_keeps_unvisited_checkpoints(): void
     {
@@ -54,6 +62,10 @@ class Pbi06PatrolExecutionTest extends TestCase
             ->assertDontSee('data-patrol-mutation', false)->assertDontSee('data-finish-open', false);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-04a.
+     * TC-PBI06-04a: Tugas kedua ditolak saat ada patroli aktif; tautan menuju tugas aktif tersedia.
+     */
     #[TestDox('TC-PBI06-04a: the second task cannot start while another patrol is active')]
     public function test_active_patrol_blocks_other_assignment_with_current_state_and_link(): void
     {
@@ -69,6 +81,12 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertNull($other->fresh()->started_at);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-06b, TC-PBI06-07a, TC-PBI06-07b.
+     * TC-PBI06-06b: Start/finish pada Selesai ditolak tanpa menimpa waktu.
+     * TC-PBI06-07a: Start berulang menghasilkan konflik; waktu mulai pertama tetap.
+     * TC-PBI06-07b: Finish berulang menghasilkan konflik; waktu akhir pertama tetap.
+     */
     #[TestDox('TC-PBI06-06b, TC-PBI06-07a, TC-PBI06-07b: terminal status and retries preserve timestamps')]
     public function test_duplicate_start_and_finish_return_conflict_without_overwriting_timestamps(): void
     {
@@ -90,6 +108,10 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertSame($ended, $patrol->fresh()->getRawOriginal('ended_at'));
     }
 
+    /**
+     * Test case Jira: TC-PBI06-06a.
+     * TC-PBI06-06a: Finish saat Ditugaskan ditolak dan kondisi terbaru ditampilkan.
+     */
     #[TestDox('TC-PBI06-06a: finishing an assigned patrol returns a conflict with current state')]
     public function test_assigned_cannot_finish_and_html_conflict_displays_current_detail(): void
     {
@@ -103,6 +125,11 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertSame(PatrolStatus::Assigned, $patrol->fresh()->status);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-08b.
+     * TC-PBI06-08b: Admin/Citizen tidak dapat membaca/memutasi melalui endpoint Ranger.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('forbiddenRoles')]
     #[TestDox('TC-PBI06-08b: other roles cannot read or mutate ranger tasks ($role)')]
     public function test_other_roles_cannot_read_or_mutate_ranger_patrols(string $role): void
@@ -119,6 +146,11 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertNull($patrol->fresh()->started_at);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-01b, TC-PBI06-08a.
+     * TC-PBI06-01b: Akses detail/start/finish Ranger lain 404 tanpa metadata tugas.
+     * TC-PBI06-08a: Guest ditolak mengikuti kontrak web/JSON.
+     */
     #[TestDox('TC-PBI06-01b, TC-PBI06-08a: guest and cross-ranger access disclose no task metadata')]
     public function test_guest_and_other_ranger_cannot_access_or_mutate_task(): void
     {
@@ -134,6 +166,10 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertNull($patrol->fresh()->started_at);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-08c.
+     * TC-PBI06-08c: Ranger nonaktif di-logout dan tidak dapat start/finish.
+     */
     #[TestDox('TC-PBI06-08c: an inactive ranger is logged out without starting the patrol')]
     public function test_inactive_ranger_is_rejected(): void
     {
@@ -145,6 +181,10 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertNull($patrol->fresh()->started_at);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-10.
+     * TC-PBI06-10: Master soft-deleted tidak merusak detail atau lifecycle historis.
+     */
     #[TestDox('TC-PBI06-10: deleted master records remain readable during execution')]
     public function test_deleted_master_does_not_block_historical_detail_or_execution(): void
     {
@@ -162,6 +202,10 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertNull($patrol->patrolCheckpoints->sole()->visited_at);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-11b.
+     * TC-PBI06-11b: Clock skew tidak menghasilkan durasi negatif; waktu akhir tetap waktu server.
+     */
     #[TestDox('TC-PBI06-11b: clock skew never produces a negative duration or a fabricated finish time')]
     public function test_duration_is_never_negative_and_completed_duration_does_not_grow(): void
     {
@@ -176,6 +220,10 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertSame(0, $patrol->fresh()->durationSeconds());
     }
 
+    /**
+     * Test case Jira: TC-PBI06-01c.
+     * TC-PBI06-01c: Prioritas aktif, jadwal terdekat, selesai terbaru, dan pagination stabil.
+     */
     #[TestDox('TC-PBI06-01c: tasks are ordered by active state, schedule and recent completion')]
     public function test_list_prioritizes_active_then_scheduled_assignments_then_recent_completions(): void
     {
@@ -190,6 +238,10 @@ class Pbi06PatrolExecutionTest extends TestCase
             ->assertViewHas('patrols', fn ($patrols) => $patrols->pluck('id')->all() === [$active->id, $sooner->id, $later->id, $recent->id, $finished->id]);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-12.
+     * TC-PBI06-12: Kegagalan query start/finish tidak meninggalkan status/waktu parsial; respons error benar.
+     */
     #[TestDox('TC-PBI06-12: a failed start write rolls back status and time')]
     public function test_failed_status_write_returns_error_without_partial_transition(): void
     {
@@ -210,6 +262,10 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertNull($patrol->fresh()->ended_at);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-02b.
+     * TC-PBI06-02b: Payload start/finish tidak mengubah penugasan/pemilik atau waktu server.
+     */
     #[TestDox('TC-PBI06-02b: finish ignores forged ownership, assignment and server timestamps')]
     public function test_finish_cannot_overwrite_assignment_fields_or_accept_client_timestamps(): void
     {
@@ -232,6 +288,10 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertDatabaseCount('patrols', 1);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-11a.
+     * TC-PBI06-11a: Durasi akhir positif dan timestamp tetap setelah waktu berlalu; hasil hanya-baca.
+     */
     #[TestDox('TC-PBI06-11a: positive final duration and read-only state survive time passing')]
     public function test_completed_duration_and_timestamps_remain_fixed_when_time_passes(): void
     {
@@ -252,6 +312,11 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertDatabaseCount('patrols', 1);
     }
 
+    /**
+     * Test case Jira: TC-PBI06-01a, TC-PBI06-01c.
+     * TC-PBI06-01a: Hanya tugas pemilik yang terlihat, termasuk halaman pagination berikutnya.
+     * TC-PBI06-01c: Prioritas aktif, jadwal terdekat, selesai terbaru, dan pagination stabil.
+     */
     #[TestDox('TC-PBI06-01a, TC-PBI06-01c: pagination never includes a different ranger task')]
     public function test_pagination_keeps_ranger_tasks_isolated_on_every_page(): void
     {
@@ -269,6 +334,11 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertSame([$ranger->id], $second->pluck('ranger_id')->unique()->values()->all());
     }
 
+    /**
+     * Test case Jira: TC-PBI06-12.
+     * TC-PBI06-12: Kegagalan query start/finish tidak meninggalkan status/waktu parsial; respons error benar.
+     * Setiap dataset pada DataProvider menjalankan variasi skenario ini secara terpisah.
+     */
     #[DataProvider('transports')]
     #[TestDox('TC-PBI06-12: a failed finish write preserves the active patrol ($json)')]
     public function test_failed_finish_rolls_back_and_returns_a_recoverable_error(bool $json): void
@@ -295,6 +365,10 @@ class Pbi06PatrolExecutionTest extends TestCase
         $this->assertSame($original, $patrol->fresh()->getRawOriginal());
     }
 
+    /**
+     * Test case Jira: TC-PBI06-08c.
+     * TC-PBI06-08c: Ranger nonaktif di-logout dan tidak dapat start/finish.
+     */
     #[TestDox('TC-PBI06-08c: an inactive ranger cannot finish an already active task')]
     public function test_deactivated_ranger_cannot_finish_and_is_logged_out(): void
     {

@@ -7,13 +7,15 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EvidenceController extends Controller
 {
     /**
      * Akses berkas bukti foto lapangan melalui temporary signed URL berumur 5 menit.
      */
-    public function __invoke(Request $request, Evidence $evidence): RedirectResponse
+    public function __invoke(Request $request, Evidence $evidence): RedirectResponse|StreamedResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -94,8 +96,16 @@ class EvidenceController extends Controller
     /**
      * Menghasilkan temporary signed URL berumur 5 menit dan mengarahkan pengguna.
      */
-    private function redirectToSignedUrl(Evidence $evidence): RedirectResponse
+    private function redirectToSignedUrl(Evidence $evidence): RedirectResponse|StreamedResponse
     {
+        if ($evidence->incident_id !== null && Str::startsWith($evidence->file_path, 'evidences/incidents/')) {
+            $legacyDisk = Storage::disk('public');
+
+            if ($legacyDisk->fileExists($evidence->file_path)) {
+                return $legacyDisk->response($evidence->file_path, headers: ['Cache-Control' => 'private, no-store']);
+            }
+        }
+
         $diskName = config('filesystems.evidence_disk', 's3');
         $disk = Storage::disk($diskName);
 

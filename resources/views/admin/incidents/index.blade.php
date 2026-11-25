@@ -23,6 +23,11 @@
            class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap {{ empty($statusFilter) ? 'bg-forest-800 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50' }}">
             Semua Kasus
         </a>
+        <a href="{{ route('admin.incidents.index', ['status' => 'needs-verification']) }}"
+           @if ($statusFilter === 'needs-verification') aria-current="page" @endif
+           class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap {{ $statusFilter === 'needs-verification' ? 'bg-forest-800 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50' }}">
+            Perlu verifikasi
+        </a>
         @foreach ($statuses as $st)
             <a href="{{ route('admin.incidents.index', ['status' => $st->name]) }}"
                class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap {{ $statusFilter === $st->name ? 'bg-forest-800 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50' }}">
@@ -57,6 +62,9 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800">
                                     {{ $incident->caseStatus?->name }}
                                 </span>
+                                @if (in_array($incident->caseStatus?->name, \App\Models\Incident::PENDING_VERIFICATION_STATUSES, true))
+                                    <span class="text-xs font-semibold text-amber-800">Dugaan</span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-slate-500 text-xs">{{ $incident->occurred_at?->format('d M Y, H:i') }}</td>
                             <td class="px-4 py-3 text-right">
@@ -68,7 +76,7 @@
                     @empty
                         <tr>
                             <td colspan="7" class="px-4 py-8 text-center text-slate-500">
-                                Belum ada laporan insiden yang tercatat.
+                                {{ $statusFilter === 'needs-verification' ? 'Tidak ada laporan yang perlu diverifikasi.' : 'Belum ada laporan insiden yang tercatat.' }}
                             </td>
                         </tr>
                     @endforelse
