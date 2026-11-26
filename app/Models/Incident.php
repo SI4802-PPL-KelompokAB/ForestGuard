@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Incident extends Model
@@ -93,5 +94,10 @@ class Incident extends Model
     public function evidences(): HasMany
     {
         return $this->hasMany(Evidence::class);
+    }
+
+    public function clusters(): BelongsToMany
+    {
+        return $this->belongsToMany(IncidentCluster::class, 'incident_cluster_incident');
     }
 }

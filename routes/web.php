@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\IncidentController as AdminIncidentController;
+use App\Http\Controllers\Admin\IncidentClusterController;
 use App\Http\Controllers\Admin\Master\CaseStatusController;
 use App\Http\Controllers\Admin\Master\CheckpointController;
 use App\Http\Controllers\Admin\Master\ForestAreaController;
@@ -83,6 +84,8 @@ Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admi
     Route::post('/kasus/{incident}/status', [AdminIncidentController::class, 'updateStatus'])->name('incidents.update-status');
     Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/laporan/pdf', [ReportController::class, 'export'])->name('reports.pdf');
+    Route::get('/pengelompokan-insiden', [IncidentClusterController::class, 'index'])->name('incident-clusters.index');
+    Route::post('/pengelompokan-insiden/proses', [IncidentClusterController::class, 'process'])->name('incident-clusters.process');
     Route::get('/patroli', [AdminPatrolController::class, 'index'])->name('patrols.index');
     Route::post('/patroli', [AdminPatrolController::class, 'store'])->name('patrols.store');
     Route::get('/patroli/{patrol}', [AdminPatrolController::class, 'show'])->name('patrols.show');
